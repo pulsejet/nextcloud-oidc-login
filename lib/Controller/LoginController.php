@@ -102,6 +102,7 @@ class LoginController extends Controller
             'name' => 'name',
             'uid' => 'sub',
             'mail' => 'mail',
+            'quota' => 'ownCloudQuota',
         );
         $attr = array_merge($defattr, $confattr);
 
@@ -141,6 +142,11 @@ class LoginController extends Controller
         // Update user profile 
         $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
         $user->setEMailAddress((string)$profile[$attr['mail']]);
+
+        // Set optional params
+        if (array_key_exists($attr['quota'], $profile)) {
+            $user->setQuota((string) $profile[$attr['quota']]);
+        }
 
         $defaultGroup = $profile['default_group'];
         if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
