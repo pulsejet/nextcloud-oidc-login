@@ -11,6 +11,7 @@ use OCP\IUserSession;
 use OCP\IUserManager;
 use OCP\IURLGenerator;
 use OCP\IGroupManager;
+use OCP\ISession;
 use OC\User\LoginException;
 use Jumbojett\OpenIDConnectClient;
 
@@ -26,6 +27,8 @@ class LoginController extends Controller
     private $userSession;
     /** @var IGroupManager */
     private $groupManager;
+    /** @var ISession */
+    private $session;
     /** @var IL10N */
     private $l;
 
@@ -38,6 +41,7 @@ class LoginController extends Controller
         IUserManager $userManager,
         IUserSession $userSession,
         IGroupManager $groupManager,
+        ISession $session,
         IL10N $l
     ) {
         parent::__construct($appName, $request);
@@ -46,6 +50,7 @@ class LoginController extends Controller
         $this->userManager = $userManager;
         $this->userSession = $userSession;
         $this->groupManager = $groupManager;
+        $this->session = $session;
         $this->l = $l;
     }
 
@@ -64,7 +69,10 @@ class LoginController extends Controller
         ];
 
         try {
-            $oidc = new OpenIDConnectClient('https://testsso.iitb.ac.in', 'application2', 'secret2');
+            $oidc = new OpenIDConnectClient(
+                $this->config->getSystemValue('oidc_login_provider_url'),
+                $this->config->getSystemValue('oidc_login_client_id'),
+                $this->config->getSystemValue('oidc_login_client_secret'));
             $oidc->setRedirectURL($callbackUrl);
             $oidc->authenticate();
             $user = $oidc->requestUserInfo();
