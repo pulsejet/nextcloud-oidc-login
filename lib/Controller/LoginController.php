@@ -87,23 +87,34 @@ class LoginController extends Controller
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             $this->session->set('login_redirect_url', $redirectUrl);
         }
-
-        $profileId = preg_replace('#.*/#', '', rtrim($profile['sub'], '/'));
-        if (empty($profileId)) {
-            throw new LoginException($this->l->t('Can not get identifier from provider'));
-        }
         
         $profile['default_group'] = $config['default_group'];
 
-        $uid = $profileId;
+        return $this->login($profile);
+    }
+
+    private function login($profile)
+    {
+        // Get attributes
+        $confattr = $this->config->getSystemValue('oidc_login_attributes', array());
+        $defattr = array(
+            'id' => 'sub',
+            'name' => 'name',
+            'uid' => 'sub',
+            'mail' => 'mail',
+        );
+        $attr = array_merge($defattr, $confattr);
+
+        $uid = preg_replace('#.*/#', '', rtrim($profile[$attr['id']], '/'));
+        if (empty($uid)) {
+            throw new LoginException($this->l->t('Can not get identifier from provider'));
+        }
+
+        // Check max length of uid
         if (strlen($uid) > 64) {
             $uid = md5($profileId);
         }
-        return $this->login($uid, $profile);
-    }
 
-    private function login($uid, $profile)
-    {
         // Get user with fallback
         $user = $this->userManager->get($uid);
         if (null === $user && $profile->email) {
@@ -128,8 +139,8 @@ class LoginController extends Controller
         }
 
         // Update user profile 
-        $user->setDisplayName($profile->displayName ?: $profile->identifier);
-        $user->setEMailAddress((string)$profile->email);
+        $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
+        $user->setEMailAddress((string)$profile[$attr['mail']]);
 
         $defaultGroup = $profile['default_group'];
         if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
