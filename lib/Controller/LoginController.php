@@ -64,8 +64,7 @@ class LoginController extends Controller
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
 
         $config = [
-            'default_group' => '',
-            'logout_url'    => '',
+            'default_group' => ''
         ];
 
         try {
@@ -92,12 +91,6 @@ class LoginController extends Controller
         $profileId = preg_replace('#.*/#', '', rtrim($profile['sub'], '/'));
         if (empty($profileId)) {
             throw new LoginException($this->l->t('Can not get identifier from provider'));
-        }
-
-        if (!empty($config['logout_url'])) {
-            $this->session->set('oidclogin_logout_url', $config['logout_url']);
-        } else {
-            $this->session->remove('oidclogin_logout_url', $config['logout_url']);
         }
         
         $profile['default_group'] = $config['default_group'];

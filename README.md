@@ -4,7 +4,15 @@ Make possible create users and login via OpenID Connect
 
 ## Config
 
-You can use `'social_login_auto_redirect' => true` setting in `config.php` for auto redirect unauthorized users to social login if only one provider is configured.
+```php
+$CONFIG = array (
+    'oidc_login_provider_url' => 'https://openid.example.com',
+    'oidc_login_client_id' => 'application',
+    'oidc_login_client_secret' => 'secret',
+    'oidc_login_auto_redirect' => false,
+    'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
+);
+```
 
 ### About Callback(Reply) Url
 You can copy link from specific login button on login page and paste it on provider's website as callback url!

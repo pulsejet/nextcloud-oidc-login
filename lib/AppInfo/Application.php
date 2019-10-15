@@ -40,7 +40,7 @@ class Application extends App
             if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
                 $session->set('last-password-confirm', time());
             }
-            if ($logoutUrl = $session->get('oidclogin_logout_url')) {
+            if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', false)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
                     header('Location: ' . $logoutUrl);
                     exit();
@@ -49,19 +49,28 @@ class Application extends App
             return;
         }
 
+        // Get URLs
+        $this->urlGenerator = $this->query(IURLGenerator::class);
+        $request = $this->query(IRequest::class);
+        $this->redirectUrl = $request->getParam('redirect_url');
+        $this->providerUrl = $this->urlGenerator->linkToRoute($this->appName.'.login.oidc', [
+            'login_redirect_url' => $this->redirectUrl
+        ]);
+
+        // Add login button
         $this->addAltLogin();
+
+        // Redirect automatically
+        $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
+        if ($useLoginRedirect && $request->getPathInfo() === '/login') {
+            header('Location: ' . $this->providerUrl);
+            exit();
+        }
     }
 
     private function addAltLogin()
     {
-        $this->urlGenerator = $this->query(IURLGenerator::class);
-        $request = $this->query(IRequest::class);
-        $this->redirectUrl = $request->getParam('redirect_url');
-
         $l = $this->query(IL10N::class);
-        $this->providerUrl = $this->urlGenerator->linkToRoute($this->appName.'.login.oidc', [
-            'login_redirect_url' => $this->redirectUrl
-        ]);
         \OC_App::registerLogIn([
             'name' => $l->t('OpenID Connect'),
             'href' => $this->providerUrl
