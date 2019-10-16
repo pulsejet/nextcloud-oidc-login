@@ -1,16 +1,28 @@
-# OpenID Connect Basic
+# NextCloud Single OpenID Connect
 
-Make possible create users and login via OpenID Connect
+Make possible create users and login via one single OpenID Connect provider. Fork of https://github.com/zorn-v/nextcloud-social-login
 
 ## Config
 
 ```php
 $CONFIG = array (
+    'allow_user_to_change_display_name' => false,
+    'lost_password_link' => 'disabled',
+
     'oidc_login_provider_url' => 'https://openid.example.com',
     'oidc_login_client_id' => 'application',
     'oidc_login_client_secret' => 'secret',
     'oidc_login_auto_redirect' => false,
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
+    'oidc_login_default_quota' => '1000000',
+    'oidc_login_attributes' => array (
+        'id' => 'sub',
+        'name' => 'name',
+        'uid' => 'sub',
+        'mail' => 'mail',
+        'quota' => 'ownCloudQuota',
+        'home' => 'homeDirectory',
+    ),
 );
 ```
 
