@@ -72,7 +72,7 @@ class Application extends App
     {
         $l = $this->query(IL10N::class);
         \OC_App::registerLogIn([
-            'name' => $l->t('OpenID Connect'),
+            'name' => $l->t($this->config->getSystemValue('oidc_login_button_text', 'OpenID Connect')),
             'href' => $this->providerUrl
         ]);
     }

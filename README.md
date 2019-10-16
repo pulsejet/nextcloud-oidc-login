@@ -15,6 +15,7 @@ $CONFIG = array (
     'oidc_login_auto_redirect' => false,
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
     'oidc_login_default_quota' => '1000000',
+    'oidc_login_button_text' => 'Log in with OpenID',
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => 'name',
