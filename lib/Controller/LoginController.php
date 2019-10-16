@@ -103,9 +103,11 @@ class LoginController extends Controller
             'uid' => 'sub',
             'mail' => 'mail',
             'quota' => 'ownCloudQuota',
+            'home' => 'homeDirectory',
         );
         $attr = array_merge($defattr, $confattr);
 
+        // Get UID
         $uid = preg_replace('#.*/#', '', rtrim($profile[$attr['id']], '/'));
         if (empty($uid)) {
             throw new LoginException($this->l->t('Can not get identifier from provider'));
@@ -113,7 +115,32 @@ class LoginController extends Controller
 
         // Check max length of uid
         if (strlen($uid) > 64) {
-            $uid = md5($profileId);
+            $uid = md5($uid);
+        }
+
+        // Add prefix
+        $uid = "oidc-$uid";
+
+        // Get base data directory
+        $datadir = $this->config->getSystemValue('datadirectory');
+
+        // Set home directory
+        if (array_key_exists($attr['home'], $profile)) {
+            $home = $profile[$attr['home']];
+
+            // Make home directory if does not exist
+            mkdir($home, 0777, true);
+
+            // Check if correct link exists
+            $nhome = "$datadir/$uid";
+            if (is_link($nhome) && readlink($nhome) != $home) {
+                unlink($nhome);
+            }
+
+            // Create symlink to directory
+            if (!is_link($nhome) && !symlink($home, $nhome)) {
+                throw new LoginException("Failed to create symlink to home directory");
+            }
         }
 
         // Get user with fallback
