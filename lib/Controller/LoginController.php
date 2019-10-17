@@ -212,7 +212,7 @@ class LoginController extends Controller
 
         // Create user if not existing
         if (null === $user) {
-            if ($this->config->getAppValue($this->appName, 'oidc_login_disable_registration')) {
+            if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
                 throw new LoginException($this->l->t('Auto creating new users is disabled'));
             }
             
@@ -222,22 +222,24 @@ class LoginController extends Controller
             $this->config->setUserValue($uid, $this->appName, 'disable_password_confirmation', 1);
         }
 
-        // Update user profile 
-        $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
-        $user->setEMailAddress((string)$profile[$attr['mail']]);
+        // Update user profile
+        if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
+            $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
+            $user->setEMailAddress((string)$profile[$attr['mail']]);
 
-        // Set optional params
-        if (array_key_exists($attr['quota'], $profile)) {
-            $user->setQuota((string) $profile[$attr['quota']]);
-        } else {
-            if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
-                $user->setQuota((string) $defaultQuota);
-            };
-        }
+            // Set optional params
+            if (array_key_exists($attr['quota'], $profile)) {
+                $user->setQuota((string) $profile[$attr['quota']]);
+            } else {
+                if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
+                    $user->setQuota((string) $defaultQuota);
+                };
+            }
 
-        $defaultGroup = $profile['default_group'];
-        if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
-            $group->addUser($user);
+            $defaultGroup = $profile['default_group'];
+            if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
+                $group->addUser($user);
+            }
         }
 
         // Complete login
