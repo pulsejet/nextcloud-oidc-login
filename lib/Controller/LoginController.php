@@ -13,7 +13,7 @@ use OCP\IURLGenerator;
 use OCP\IGroupManager;
 use OCP\ISession;
 use OC\User\LoginException;
-use Jumbojett\OpenIDConnectClient;
+use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 
 class LoginController extends Controller
 {
@@ -69,6 +69,7 @@ class LoginController extends Controller
 
         try {
             $oidc = new OpenIDConnectClient(
+                $this->session,
                 $this->config->getSystemValue('oidc_login_provider_url'),
                 $this->config->getSystemValue('oidc_login_client_id'),
                 $this->config->getSystemValue('oidc_login_client_secret'));
