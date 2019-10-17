@@ -147,9 +147,11 @@ class LoginController extends Controller
             $dn = $dns[0];
 
             // Store the user
-            if ($access->userManager->get($dn) == NULL) {
+            $ldapUser = $access->userManager->get($dn);
+            if ($ldapUser == NULL) {
                 throw new LoginException($this->l->t('Error getting user from LDAP'));
             }
+            $ldapUser->update();
         }
 
         // Get UID
