@@ -62,7 +62,7 @@ class Application extends App
 
         // Redirect automatically
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
-        if ($useLoginRedirect && $request->getPathInfo() === '/login') {
+        if ($useLoginRedirect && $request->getPathInfo() === '/login' && $request->getParam('noredir') == null) {
             header('Location: ' . $this->providerUrl);
             exit();
         }
