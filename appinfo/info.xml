@@ -7,7 +7,7 @@
 <description><![CDATA[
 # NextCloud Single OpenID Connect
 
-Make possible create users and login via one single OpenID Connect provider. Fork of https://github.com/zorn-v/nextcloud-social-login
+Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute.
 
 ## Config
 
@@ -31,13 +31,10 @@ $CONFIG = array (
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
     ),
+    'oidc_login_proxy_ldap' => false,
+    'oidc_login_disable_registration' => true,
 );
 ```
-
-### About Callback(Reply) Url
-You can copy link from specific login button on login page and paste it on provider's website as callback url!
-Some users may get strange reply(Callback) url error from provider even if you pasted the right url, that's because your nextcloud server may generate http urls when you are actually using https.
-Please set 'overwriteprotocol' => 'https', in your config.php file.
 ]]></description>
     <version>1.0.0</version>
     <licence>agpl</licence>
