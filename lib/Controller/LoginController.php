@@ -96,10 +96,16 @@ class LoginController extends Controller
 
     private function login($profile)
     {
+        // Redirect if already logged in
+        if ($this->userSession->isLoggedIn()) {
+            return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
+        }
+
         // Get attributes
         $confattr = $this->config->getSystemValue('oidc_login_attributes', array());
         $defattr = array(
-            'id' => 'sub',
+            'id' => 'id',
+            'id_alt' => 'uid',
             'name' => 'name',
             'uid' => 'sub',
             'mail' => 'mail',
@@ -119,8 +125,20 @@ class LoginController extends Controller
             $uid = md5($uid);
         }
 
-        // Add prefix
-        $uid = "oidc-$uid";
+        // Get alternate UID
+        $uid_alt = preg_replace('#.*/#', '', rtrim($profile[$attr['id_alt']], '/'));
+
+        // Check max length of uid_alt
+        if (strlen($uid_alt) > 64) {
+            $uid_alt = md5($uid_alt);
+        }
+
+        // Get user with fallback
+        $user = $this->userManager->get($uid);
+        if (null === $user && $uid_alt) {
+            $uid = $uid_alt;
+            $user = $this->userManager->get($uid);
+        }
 
         // Get base data directory
         $datadir = $this->config->getSystemValue('datadirectory');
@@ -132,27 +150,21 @@ class LoginController extends Controller
             // Make home directory if does not exist
             mkdir($home, 0777, true);
 
-            // Check if correct link exists
+            // Home directory (intended) of the user
             $nhome = "$datadir/$uid";
-            if (is_link($nhome) && readlink($nhome) != $home) {
-                unlink($nhome);
+
+            // Check if correct link or home directory exists
+            if (!file_exists($nhome) || is_link($nhome)) {
+                // Unlink if invalid link
+                if (is_link($nhome) && readlink($nhome) != $home) {
+                    unlink($nhome);
+                }
+
+                // Create symlink to directory
+                if (!is_link($nhome) && !symlink($home, $nhome)) {
+                    throw new LoginException("Failed to create symlink to home directory");
+                }
             }
-
-            // Create symlink to directory
-            if (!is_link($nhome) && !symlink($home, $nhome)) {
-                throw new LoginException("Failed to create symlink to home directory");
-            }
-        }
-
-        // Get user with fallback
-        $user = $this->userManager->get($uid);
-        if (null === $user && $profile->email) {
-            $user = $this->userManager->getByEmail($profile->email)[0];
-        }        
-
-        // Redirect if already logged in
-        if ($this->userSession->isLoggedIn()) {
-            return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
         // Create user if not existing
