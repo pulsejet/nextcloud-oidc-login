@@ -24,6 +24,8 @@ $CONFIG = array (
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
     ),
+    'oidc_login_proxy_ldap' => false,
+    'oidc_login_disable_registration' => false,
 );
 ```
 

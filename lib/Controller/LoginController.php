@@ -111,8 +111,46 @@ class LoginController extends Controller
             'mail' => 'mail',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
+            'ldap_uid' => 'uid',
         );
         $attr = array_merge($defattr, $confattr);
+
+        // Ensure the LDAP user exists if we are proxying for LDAP
+        if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
+            // Get LDAP uid
+            $ldapUid = $profile[$attr['ldap_uid']];
+            if (empty($ldapUid)) {
+                throw new LoginException($this->l->t('No LDAP UID found in OpenID response'));
+            }
+
+            // Get the LDAP user backend
+            $ldap = NULL;
+            foreach ($this->userManager->getBackends() as $backend) {
+                if ($backend->getBackendName() == $this->config->getSystemValue('oidc_login_ldap_backend', "LDAP")) {
+                    $ldap = $backend;
+                }
+            }
+
+            // Check if backend found
+            if ($ldap == NULL) {
+                throw new LoginException($this->l->t('No LDAP user backend found!'));
+            }
+
+            // Get LDAP Access object
+            $access = $ldap->getLDAPAccess($ldapUid);
+
+            // Get the DN
+            $dns = $access->fetchUsersByLoginName($ldapUid);
+            if (empty($dns)) {
+                throw new LoginException($this->l->t('Error getting DN for LDAP user'));
+            }
+            $dn = $dns[0];
+
+            // Store the user
+            if ($access->userManager->get($dn) == NULL) {
+                throw new LoginException($this->l->t('Error getting user from LDAP'));
+            }
+        }
 
         // Get UID
         $uid = preg_replace('#.*/#', '', rtrim($profile[$attr['id']], '/'));
@@ -143,8 +181,11 @@ class LoginController extends Controller
         // Get base data directory
         $datadir = $this->config->getSystemValue('datadirectory');
 
-        // Set home directory
-        if (array_key_exists($attr['home'], $profile)) {
+        // Set home directory unless proxying for LDAP
+        if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false) &&
+             array_key_exists($attr['home'], $profile)) {
+
+            // Get intended home directory
             $home = $profile[$attr['home']];
 
             // Make home directory if does not exist
@@ -169,7 +210,7 @@ class LoginController extends Controller
 
         // Create user if not existing
         if (null === $user) {
-            if ($this->config->getAppValue($this->appName, 'disable_registration')) {
+            if ($this->config->getAppValue($this->appName, 'oidc_login_disable_registration')) {
                 throw new LoginException($this->l->t('Auto creating new users is disabled'));
             }
             
