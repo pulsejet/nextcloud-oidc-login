@@ -1,6 +1,6 @@
 {
-	"name": "oidclogin/3rdparty",
-	"description": "3rdparty components for oidclogin",
+	"name": "oidc_login/3rdparty",
+	"description": "3rdparty components for oidc_login",
 	"config": {
 		"vendor-dir": ".",
 		"optimize-autoloader": true,

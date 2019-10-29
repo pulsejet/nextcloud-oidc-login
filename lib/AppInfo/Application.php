@@ -12,7 +12,7 @@ use OCP\IL10N;
 
 class Application extends App
 {
-    private $appName = 'oidclogin';
+    private $appName = 'oidc_login';
 
     private $providerUrl;
 
