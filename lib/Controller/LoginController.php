@@ -104,10 +104,8 @@ class LoginController extends Controller
         // Get attributes
         $confattr = $this->config->getSystemValue('oidc_login_attributes', array());
         $defattr = array(
-            'id' => 'id',
-            'id_alt' => 'uid',
+            'id' => 'sub',
             'name' => 'name',
-            'uid' => 'sub',
             'mail' => 'mail',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
@@ -165,20 +163,8 @@ class LoginController extends Controller
             $uid = md5($uid);
         }
 
-        // Get alternate UID
-        $uid_alt = preg_replace('#.*/#', '', rtrim($profile[$attr['id_alt']], '/'));
-
-        // Check max length of uid_alt
-        if (strlen($uid_alt) > 64) {
-            $uid_alt = md5($uid_alt);
-        }
-
         // Get user with fallback
         $user = $this->userManager->get($uid);
-        if (null === $user && $uid_alt) {
-            $uid = $uid_alt;
-            $user = $this->userManager->get($uid);
-        }
 
         // Get base data directory
         $datadir = $this->config->getSystemValue('datadirectory');

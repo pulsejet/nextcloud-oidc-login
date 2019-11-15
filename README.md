@@ -19,7 +19,6 @@ $CONFIG = array (
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => 'name',
-        'uid' => 'sub',
         'mail' => 'mail',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
