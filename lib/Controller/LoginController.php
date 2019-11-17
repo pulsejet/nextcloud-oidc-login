@@ -68,16 +68,32 @@ class LoginController extends Controller
         ];
 
         try {
+            // Construct new client
             $oidc = new OpenIDConnectClient(
                 $this->session,
                 $this->config->getSystemValue('oidc_login_provider_url'),
                 $this->config->getSystemValue('oidc_login_client_id'),
                 $this->config->getSystemValue('oidc_login_client_secret'));
             $oidc->setRedirectURL($callbackUrl);
+
+            // Authenticate
             $oidc->authenticate();
+
+            // Get user information from OIDC
             $user = $oidc->requestUserInfo();
+
+            // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true), $config);
+
         } catch (\Exception $e) {
+            // Go to noredir page if fallback enabled
+            if ($this->config->getSystemValue('oidc_login_redir_fallback', false)) {
+                $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1';
+                header('Location: ' . $noRedirLoginUrl);
+                exit();
+            }
+
+            // Show error page
             \OC_Template::printErrorPage($e->getMessage());
         }
     }
