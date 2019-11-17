@@ -75,6 +75,9 @@ $CONFIG = array (
 3. Necessary `config.php` settings (differing from above)
 ```php
 'oidc_login_provider_url' => 'https://keycloak.example.com/auth/realms/YOUR_REALM',
+'oidc_login_auto_redirect' => true,
+'oidc_login_redir_fallback' => true,
+'oidc_login_logout_url' => 'https://keycloak.example.com/auth/realms/MY_REALM/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fcloud.example.com%2F',
 'oidc_login_attributes' => array(
 	'id' => 'preferred_username',
 	'mail' => 'email',
