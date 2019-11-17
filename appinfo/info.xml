@@ -60,10 +60,14 @@ $CONFIG = array (
 
     // Disable creation of new users from OIDC login
     'oidc_login_disable_registration' => true,
+
+    // Fallback to direct login if login from OIDC fails
+    // Note that no error message will be displayed if enabled
+    'oidc_login_redir_fallback' => false,
 );
 ```
 ]]></description>
-    <version>1.0.3</version>
+    <version>1.1.0</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
