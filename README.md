@@ -55,3 +55,24 @@ $CONFIG = array (
     'oidc_login_disable_registration' => true,
 );
 ```
+### Special Considerations for [Keycloak](https://www.keycloak.org/)
+
+1. Create the NextCloud Client in a Keycloak Realm of your choosing.
+	1. Set `Access type` to `confidential`  
+	Note: The `Client Secret` will be in the newly created `Credentials` tab after saving.
+	2. Add a `Valid Redirect uri` of `https://cloud.example.com/*`
+	3. Add a `Mapper` to the Nextcloud OIDC Client 
+		1. Set `Mapper Type` to `user attribute`
+		2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`
+		3. Set `Claim JSON Type` as `string`.
+2. Add a User `Attribute` to necessary user accounts in Keycloak.
+	1. Set `Key` as `ownCloudQuota` and `Value` to your preferred limit.
+3. Necessary `config.php` settings (differing from above)
+```php
+'oidc_login_provider_url' => 'https://keycloak.example.com/auth/realms/YOUR_REALM',
+'oidc_login_attributes' => array (
+	'id' => 'preferred_username',
+	'mail' => 'email',
+	),
+```
+Note: You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
