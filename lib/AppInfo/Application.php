@@ -34,8 +34,11 @@ class Application extends App
 
         $this->config = $this->query(IConfig::class);
 
-        // URL for login without redirecting forcefully
-        $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1';
+        // Check if automatic redirection is enabled
+        $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
+
+        // URL for login without redirecting forcefully, false if we are not doing that
+        $noRedirLoginUrl = $useLoginRedirect ? $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
 
         // Get logged in user's session
         $userSession = $this->query(IUserSession::class);
@@ -73,7 +76,6 @@ class Application extends App
         $this->addAltLogin();
 
         // Redirect automatically
-        $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
         if ($useLoginRedirect && $request->getPathInfo() === '/login' && $request->getParam('noredir') == null) {
             header('Location: ' . $this->providerUrl);
             exit();
