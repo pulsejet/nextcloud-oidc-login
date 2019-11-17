@@ -30,17 +30,30 @@ class Application extends App
     public function register()
     {
         $l = $this->query(IL10N::class);
+        $this->urlGenerator = $this->query(IURLGenerator::class);
 
         $this->config = $this->query(IConfig::class);
 
+        // URL for login without redirecting forcefully
+        $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1';
+
+        // Get logged in user's session
         $userSession = $this->query(IUserSession::class);
+
+        // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
+            // Get the session of the user
             $uid = $userSession->getUser()->getUID();
             $session = $this->query(ISession::class);
+
+            // Disable password confirmation for user
             if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
                 $session->set('last-password-confirm', time());
             }
-            if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', false)) {
+
+            /* Redirect to logout URL on completing logout
+               If do not have logout URL, go to noredir on logout */
+            if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
                     header('Location: ' . $logoutUrl);
                     exit();
@@ -50,7 +63,6 @@ class Application extends App
         }
 
         // Get URLs
-        $this->urlGenerator = $this->query(IURLGenerator::class);
         $request = $this->query(IRequest::class);
         $this->redirectUrl = $request->getParam('redirect_url');
         $this->providerUrl = $this->urlGenerator->linkToRoute($this->appName.'.login.oidc', [
