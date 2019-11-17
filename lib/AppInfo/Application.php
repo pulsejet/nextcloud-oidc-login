@@ -76,7 +76,12 @@ class Application extends App
         $this->addAltLogin();
 
         // Redirect automatically
-        if ($useLoginRedirect && $request->getPathInfo() === '/login' && $request->getParam('noredir') == null) {
+        if ($useLoginRedirect &&
+            $_SERVER['REQUEST_METHOD'] === 'GET' &&
+            $request->getPathInfo() === '/login' &&
+            $request->getParam('noredir') == null &&
+            $request->getParam('user') == null
+        ) {
             header('Location: ' . $this->providerUrl);
             exit();
         }
