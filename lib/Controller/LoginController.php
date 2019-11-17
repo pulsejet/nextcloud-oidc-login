@@ -76,11 +76,10 @@ class LoginController extends Controller
             $oidc->setRedirectURL($callbackUrl);
             $oidc->authenticate();
             $user = $oidc->requestUserInfo();
+            return $this->authSuccess(json_decode(json_encode($user), true), $config);
         } catch (\Exception $e) {
-            throw new LoginException($e->getMessage());
+            \OC_Template::printErrorPage($e->getMessage());
         }
-
-        return $this->authSuccess(json_decode(json_encode($user), true), $config);
     }
 
     private function authSuccess($profile, array $config)
