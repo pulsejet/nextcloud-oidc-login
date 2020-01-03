@@ -59,6 +59,13 @@ $CONFIG = array (
     // Fallback to direct login if login from OIDC fails
     // Note that no error message will be displayed if enabled
     'oidc_login_redir_fallback' => false,
+
+    // Use an alternative login page
+    // This page will be php-included instead of an redirect if specified
+    // In the example below, the PHP file `login.php` in `assets`
+    // in nextcloud base directory will be included
+    // Note that the PHP variable $OIDC_LOGIN_URL is available for redirect URI
+    'oidc_login_alt_login_page' => 'assets/login.php',
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)

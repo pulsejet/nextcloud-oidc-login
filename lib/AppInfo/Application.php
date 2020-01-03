@@ -37,6 +37,9 @@ class Application extends App
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
 
+        // Check if alternative login page is enabled
+        $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
+
         // URL for login without redirecting forcefully, false if we are not doing that
         $noRedirLoginUrl = $useLoginRedirect ? $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
 
@@ -75,15 +78,24 @@ class Application extends App
         // Add login button
         $this->addAltLogin();
 
-        // Redirect automatically
-        if ($useLoginRedirect &&
-            $_SERVER['REQUEST_METHOD'] === 'GET' &&
+        // Redirect automatically or show alt login page
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' &&
             $request->getPathInfo() === '/login' &&
             $request->getParam('noredir') == null &&
             $request->getParam('user') == null
         ) {
-            header('Location: ' . $this->providerUrl);
-            exit();
+            // Force redirect
+            if ($useLoginRedirect) {
+                header('Location: ' . $this->providerUrl);
+                exit();
+            }
+
+            // Alt login page
+            if ($altLoginPage) {
+                $OIDC_LOGIN_URL = $this->providerUrl;
+                include $altLoginPage;
+                exit();
+            }
         }
     }
 
