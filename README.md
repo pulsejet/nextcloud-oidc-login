@@ -89,5 +89,10 @@ $CONFIG = array (
 	'id' => 'preferred_username',
 	'mail' => 'email',
 ),
+// If you are running Nextcloud behind a reverse proxy, make sure this is set
+'overwriteprotocol' => 'https',
 ```
-Note: You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
+
+**Note:** If necessary, restart Nextcloud to clear the APCu cache for the config file.
+
+**Note:** You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
