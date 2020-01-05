@@ -64,7 +64,9 @@ $CONFIG = array (
     // This page will be php-included instead of an redirect if specified
     // In the example below, the PHP file `login.php` in `assets`
     // in nextcloud base directory will be included
-    // Note that the PHP variable $OIDC_LOGIN_URL is available for redirect URI
+    // Note: the PHP variable $OIDC_LOGIN_URL is available for redirect URI
+    // Note: you may want to try setting `oidc_login_logout_url` to your
+    // base URL if you face issues regarding re-login after logout
     'oidc_login_alt_login_page' => 'assets/login.php',
 );
 ```
