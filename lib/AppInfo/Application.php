@@ -93,6 +93,7 @@ class Application extends App
             // Alt login page
             if ($altLoginPage) {
                 $OIDC_LOGIN_URL = $this->providerUrl;
+                header_remove('content-security-policy');
                 include $altLoginPage;
                 exit();
             }
