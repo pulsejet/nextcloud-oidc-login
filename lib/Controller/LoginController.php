@@ -255,6 +255,12 @@ class LoginController extends Controller
         // Prevent being asked to change password
         $this->session->set('last-password-confirm', time());
 
-        return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
+        // Get redirection url
+        $redir = '/';
+        if ($login_redir = $this->session->get('oidc_redir')) {
+            $redir = $login_redir;
+        }
+
+        return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
     }
 }

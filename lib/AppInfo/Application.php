@@ -45,12 +45,12 @@ class Application extends App
 
         // Get logged in user's session
         $userSession = $this->query(IUserSession::class);
+        $session = $this->query(ISession::class);
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
             // Get the session of the user
             $uid = $userSession->getUser()->getUID();
-            $session = $this->query(ISession::class);
 
             // Disable password confirmation for user
             if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
@@ -84,6 +84,14 @@ class Application extends App
             $request->getParam('noredir') == null &&
             $request->getParam('user') == null
         ) {
+            // Set redirection URL
+            $redir = $request->getParam('redirect_url');
+            if ($redir != null && !empty($redir)) {
+                $session->set('oidc_redir', $redir);
+            } else {
+                $session->set('oidc_redir', '/');
+            }
+
             // Force redirect
             if ($useLoginRedirect) {
                 header('Location: ' . $this->providerUrl);
