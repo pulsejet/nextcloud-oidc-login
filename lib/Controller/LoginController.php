@@ -181,6 +181,18 @@ class LoginController extends Controller
         // Get user with fallback
         $user = $this->userManager->get($uid);
 
+        // Create user if not existing
+        if (null === $user) {
+            if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
+                throw new LoginException($this->l->t('Auto creating new users is disabled'));
+            }
+
+            $password = substr(base64_encode(random_bytes(64)), 0, 30);
+            $user = $this->userManager->createUser($uid, $password);
+
+            $this->config->setUserValue($uid, $this->appName, 'disable_password_confirmation', 1);
+        }
+
         // Get base data directory
         $datadir = $this->config->getSystemValue('datadirectory');
 
@@ -209,18 +221,6 @@ class LoginController extends Controller
                     throw new LoginException("Failed to create symlink to home directory");
                 }
             }
-        }
-
-        // Create user if not existing
-        if (null === $user) {
-            if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
-                throw new LoginException($this->l->t('Auto creating new users is disabled'));
-            }
-            
-            $password = substr(base64_encode(random_bytes(64)), 0, 30);
-            $user = $this->userManager->createUser($uid, $password);
-
-            $this->config->setUserValue($uid, $this->appName, 'disable_password_confirmation', 1);
         }
 
         // Update user profile
