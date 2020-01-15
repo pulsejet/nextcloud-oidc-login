@@ -76,6 +76,11 @@ class LoginController extends Controller
                 $this->config->getSystemValue('oidc_login_client_secret'));
             $oidc->setRedirectURL($callbackUrl);
 
+
+            // Set OpenID Connect Scope
+            $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
+            $oidc->addScope($scope);
+
             // Authenticate
             $oidc->authenticate();
 
@@ -103,7 +108,7 @@ class LoginController extends Controller
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             $this->session->set('login_redirect_url', $redirectUrl);
         }
-        
+
         $profile['default_group'] = $config['default_group'];
 
         return $this->login($profile);

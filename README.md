@@ -46,6 +46,9 @@ $CONFIG = array (
         'home' => 'homeDirectory',
     ),
 
+    // Set OpenID Connect scope
+    'oidc_login_scope' => 'openid profile',
+
     // Run in LDAP proxy mode
     // In this mode, instead of creating users of its own, OIDC login
     // will get the existing user from an LDAP database and only
