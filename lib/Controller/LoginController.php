@@ -77,9 +77,9 @@ class LoginController extends Controller
             $oidc->setRedirectURL($callbackUrl);
 
 
-            //Settign OpenID Connect Scope
+            // Set OpenID Connect Scope
             $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
-            $oidc->addScope( $scope);
+            $oidc->addScope($scope);
 
             // Authenticate
             $oidc->authenticate();

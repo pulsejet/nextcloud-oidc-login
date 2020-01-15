@@ -45,10 +45,9 @@ $CONFIG = array (
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
     ),
-    
-    //Set OpenId Connect scope
-    'oidc_login_scope' => 'openid profile',
 
+    // Set OpenID Connect scope
+    'oidc_login_scope' => 'openid profile',
 
     // Run in LDAP proxy mode
     // In this mode, instead of creating users of its own, OIDC login
@@ -79,7 +78,7 @@ $CONFIG = array (
 	1. Set `Access type` to `confidential`  
 	Note: The `Client Secret` will be in the newly created `Credentials` tab after saving.
 	2. Add a `Valid Redirect uri` of `https://cloud.example.com/*`
-	3. Add a `Mapper` to the Nextcloud OIDC Client
+	3. Add a `Mapper` to the Nextcloud OIDC Client 
 		1. Set `Mapper Type` to `user attribute`
 		2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`
 		3. Set `Claim JSON Type` as `string`.
