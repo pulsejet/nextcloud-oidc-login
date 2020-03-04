@@ -76,6 +76,9 @@ class LoginController extends Controller
                 $this->config->getSystemValue('oidc_login_client_secret'));
             $oidc->setRedirectURL($callbackUrl);
 
+            // set TLS development mode
+            $oidc->setVerifyHost($this->config->getSystemValue('oidc_login_tls_verify', true));
+            $oidc->setVerifyPeer($this->config->getSystemValue('oidc_login_tls_verify', true));
 
             // Set OpenID Connect Scope
             $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
