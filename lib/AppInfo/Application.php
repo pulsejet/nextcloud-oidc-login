@@ -79,7 +79,8 @@ class Application extends App
         $this->addAltLogin();
 
         // Redirect automatically or show alt login page
-        if ($_SERVER['REQUEST_METHOD'] === 'GET' &&
+        if (array_key_exists('REQUEST_METHOD', $_SERVER) &&
+            $_SERVER['REQUEST_METHOD'] === 'GET' &&
             $request->getPathInfo() === '/login' &&
             $request->getParam('noredir') == null &&
             $request->getParam('user') == null
