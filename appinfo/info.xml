@@ -75,13 +75,13 @@ $CONFIG = array (
     // Note that the PHP variable $OIDC_LOGIN_URL is available for redirect URI
     'oidc_login_alt_login_page' => 'assets/login.php',
 
-    // for development, it's possible to disable tls verification. Default value is `true`
+    // For development, you may disable TLS verification. Default value is `true`
     // which should be kept in production
-    `oidc_login_tls_verify` => true,
+    'oidc_login_tls_verify' => true,
 );
 ```
 ]]></description>
-    <version>1.2.5</version>
+    <version>1.2.6</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
