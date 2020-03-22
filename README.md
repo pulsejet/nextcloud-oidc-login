@@ -71,6 +71,10 @@ $CONFIG = array (
     // Note: you may want to try setting `oidc_login_logout_url` to your
     // base URL if you face issues regarding re-login after logout
     'oidc_login_alt_login_page' => 'assets/login.php',
+    
+    // for development, it's possible to disable tls verification. Default value is `true`
+    // which should be kept in production
+    `oidc_login_tls_verify` => true,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
