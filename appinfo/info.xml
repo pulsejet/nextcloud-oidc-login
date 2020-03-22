@@ -74,10 +74,14 @@ $CONFIG = array (
     // in nextcloud base directory will be included
     // Note that the PHP variable $OIDC_LOGIN_URL is available for redirect URI
     'oidc_login_alt_login_page' => 'assets/login.php',
+
+    // for development, it's possible to disable tls verification. Default value is `true`
+    // which should be kept in production
+    `oidc_login_tls_verify` => true,
 );
 ```
 ]]></description>
-    <version>1.2.4</version>
+    <version>1.2.5</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
@@ -88,6 +92,6 @@ $CONFIG = array (
     <repository>https://github.com/pulsejet/nextcloud-single-openid-connect</repository>
     <screenshot>https://raw.githubusercontent.com/pulsejet/nextcloud-single-openid-connect/master/appinfo/screenshot.png</screenshot>
     <dependencies>
-        <nextcloud min-version="13" max-version="18" />
+        <nextcloud min-version="13" max-version="19" />
     </dependencies>
 </info>
