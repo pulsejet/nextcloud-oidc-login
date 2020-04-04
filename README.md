@@ -15,7 +15,7 @@ $CONFIG = array (
     // URL of provider. All other URLs are auto-discovered from .well-known
     'oidc_login_provider_url' => 'https://openid.example.com',
 
-    // Client ID and secret registered with the providr
+    // Client ID and secret registered with the provider
     'oidc_login_client_id' => 'application',
     'oidc_login_client_secret' => 'secret',
 
@@ -64,7 +64,7 @@ $CONFIG = array (
     'oidc_login_redir_fallback' => false,
 
     // Use an alternative login page
-    // This page will be php-included instead of an redirect if specified
+    // This page will be php-included instead of a redirect if specified
     // In the example below, the PHP file `login.php` in `assets`
     // in nextcloud base directory will be included
     // Note: the PHP variable $OIDC_LOGIN_URL is available for redirect URI
