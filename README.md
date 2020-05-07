@@ -78,22 +78,32 @@ $CONFIG = array (
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
-1. Create the NextCloud Client in a Keycloak Realm of your choosing.
-	1. Set `Access type` to `confidential`  
-	Note: The `Client Secret` will be in the newly created `Credentials` tab after saving.
-	2. Add a `Valid Redirect uri` of `https://cloud.example.com/*`
-	3. Add a `Mapper` to the Nextcloud OIDC Client 
-		1. Set `Mapper Type` to `user attribute`
-		2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`
-		3. Set `Claim JSON Type` as `string`.
-2. Add a User `Attribute` to necessary user accounts in Keycloak.
-	1. Set `Key` as `ownCloudQuota` and `Value` to your preferred limit.
+1. Create a new Client for Nextcloud in a Keycloak Realm of your choosing.
+    1. Set a `Client ID` and save.
+    2. Set `Access type` to `confidential` 
+	3. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/*`.
+	4. Open the  `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to e.g. `RS512` and save.
+	
+	Note: Only HS256, HS384, HS512, RS256, RS384, RS512 is supported.
+	
+2. Open your created Client and go to `Mappers`. (optional)
+    1. Click `create` and set `Mapper Type` to `User Attribute`.
+    2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`.
+    3. Set `Claim JSON Type` as `String`.
+    4. Click `create` and set `Mapper Type` to `User Client Role`.
+    5. Set `Name` and `Token Claim Name` to `ownCloudGroups` and select your Client ID.
+    6. Set `Claim JSON Type` as `String`.
+    7. Add or edit a User and go to `Attributes`.
+    8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit.
+	
 3. Necessary `config.php` settings (differing from above)
 ```php
+'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
+'oidc_login_client_secret' => 'secret', // Client Secret: Got to Clients -> Client -> Credentials
 'oidc_login_provider_url' => 'https://keycloak.example.com/auth/realms/YOUR_REALM',
+'oidc_login_logout_url' => 'https://keycloak.example.com/auth/realms/MY_REALM/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fcloud.example.com%2F',
 'oidc_login_auto_redirect' => true,
 'oidc_login_redir_fallback' => true,
-'oidc_login_logout_url' => 'https://keycloak.example.com/auth/realms/MY_REALM/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fcloud.example.com%2F',
 'oidc_login_attributes' => array(
 	'id' => 'preferred_username',
 	'mail' => 'email',
@@ -102,6 +112,6 @@ $CONFIG = array (
 'overwriteprotocol' => 'https',
 ```
 
-**Note:** If necessary, restart Nextcloud to clear the APCu cache for the config file.
-
-**Note:** You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
+**Note:** 
+- If necessary, restart Nextcloud to clear the APCu cache for the config file.
+- You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
