@@ -8,9 +8,8 @@
 # OpenID Connect Login
 
 Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute.
-```
 ]]></description>
-    <version>1.3.0</version>
+    <version>1.3.1</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
