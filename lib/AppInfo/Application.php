@@ -2,6 +2,7 @@
 
 namespace OCA\OIDCLogin\AppInfo;
 
+use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCP\AppFramework\App;
 use OCP\IURLGenerator;
 use OCP\IConfig;
@@ -61,6 +62,11 @@ class Application extends App
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
+                    // Do nothing if this is a CORS request
+                    if ($this->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
+                        return;
+                    }
+
                     header('Location: ' . $logoutUrl);
                     exit();
                 });
