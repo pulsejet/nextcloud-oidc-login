@@ -38,6 +38,24 @@ $CONFIG = array (
     //   iv)  quota:    NextCloud storage quota
     //   v)   home:     Home directory location. A symlink to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
+    //
+    // The attributes in the OIDC response are flattened by adding the nested
+    // array key as the prefix and an underscore. Thus,
+    //
+    //     $profile = [
+    //         'id' => 1234,
+    //         'attributes' => [
+    //             'uid' => 'myuid'
+    //         ]
+    //     ];
+    //
+    // would become,
+    //
+    //     $profile = [
+    //         'id' => 1234,
+    //         'attributes_uid' => 'myuid'
+    //     ]
+    //
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => 'name',

@@ -114,7 +114,7 @@ class LoginController extends Controller
 
         $profile['default_group'] = $config['default_group'];
 
-        return $this->login($profile);
+        return $this->login($this->flatten($profile));
     }
 
     private function login($profile)
@@ -270,5 +270,17 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function flatten($array, $prefix = '') {
+        $result = array();
+        foreach($array as $key => $value) {
+            if(is_array($value)) {
+                $result = $result + $this->flatten($value, $prefix . $key . '_');
+            } else {
+                $result[$prefix . $key] = $value;
+            }
+        }
+        return $result;
     }
 }
