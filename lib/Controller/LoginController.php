@@ -129,7 +129,7 @@ class LoginController extends Controller
         $defattr = array(
             'id' => 'sub',
             'name' => 'name',
-            'mail' => 'mail',
+            'mail' => 'email',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
