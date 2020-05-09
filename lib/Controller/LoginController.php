@@ -245,6 +245,13 @@ class LoginController extends Controller
                 };
             }
 
+            if (isset($profile['ownCloudGroups'])) {
+                foreach ($profile['ownCloudGroups'] as $group)
+                if ($systemgroup = $this->groupManager->get($group)) {
+                    $systemgroup->addUser($user);
+                }
+            }
+
             $defaultGroup = $profile['default_group'];
             if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
                 $group->addUser($user);
