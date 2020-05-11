@@ -14,7 +14,6 @@ use OCP\IGroupManager;
 use OCP\ISession;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
-use OCA\Files_External\Service\GlobalStoragesService;
 
 class LoginController extends Controller
 {
@@ -32,8 +31,9 @@ class LoginController extends Controller
     private $session;
     /** @var IL10N */
     private $l;
-    /** @var GlobalStoragesService */
-	private $storagesService;
+    /** @var \OCA\Files_External\Service\GlobalStoragesService */
+    private $storagesService;
+
 
     public function __construct(
         $appName,
@@ -45,7 +45,7 @@ class LoginController extends Controller
         IGroupManager $groupManager,
         ISession $session,
         IL10N $l,
-        GlobalStoragesService $storagesService
+        $storagesService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -216,6 +216,11 @@ class LoginController extends Controller
             $home = $profile[$attr['home']];
 
             if($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
+                // Check if the files external app is enabled and injected
+                if ($this->storagesService === null) {
+                    throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
+                }
+
                 // Check if the user already has matching storage on their root
                 $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
                     return in_array($uid, $storage->getApplicableUsers()) && // User must own the storage

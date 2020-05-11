@@ -47,7 +47,7 @@ $CONFIG = array (
     ),
 
     // Use external storage instead of a symlink to the home directory
-    // This is disabled by default for backwards compatibility
+    // Requires the files_external app to be enabled
     'oidc_login_use_external_storage' => false,
 
     // Set OpenID Connect scope

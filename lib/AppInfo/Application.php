@@ -68,6 +68,14 @@ class Application extends App
             return;
         }
 
+        // Get the container to pass special parameters
+        $container = $this->getContainer();
+
+        // Get Files_External storage service
+        $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
+            $this->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+        $container->registerParameter('storagesService', $storagesService);
+
         // Get URLs
         $request = $this->query(IRequest::class);
         $this->redirectUrl = $request->getParam('redirect_url');
