@@ -31,6 +31,8 @@ class LoginController extends Controller
     private $session;
     /** @var IL10N */
     private $l;
+    /** @var \OCA\Files_External\Service\GlobalStoragesService */
+    private $storagesService;
 
 
     public function __construct(
@@ -42,7 +44,8 @@ class LoginController extends Controller
         IUserSession $userSession,
         IGroupManager $groupManager,
         ISession $session,
-        IL10N $l
+        IL10N $l,
+        $storagesService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -52,6 +55,7 @@ class LoginController extends Controller
         $this->groupManager = $groupManager;
         $this->session = $session;
         $this->l = $l;
+        $this->storagesService = $storagesService;
     }
 
     /**
@@ -211,22 +215,58 @@ class LoginController extends Controller
             // Get intended home directory
             $home = $profile[$attr['home']];
 
-            // Make home directory if does not exist
-            mkdir($home, 0777, true);
-
-            // Home directory (intended) of the user
-            $nhome = "$datadir/$uid";
-
-            // Check if correct link or home directory exists
-            if (!file_exists($nhome) || is_link($nhome)) {
-                // Unlink if invalid link
-                if (is_link($nhome) && readlink($nhome) != $home) {
-                    unlink($nhome);
+            if($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
+                // Check if the files external app is enabled and injected
+                if ($this->storagesService === null) {
+                    throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
                 }
 
-                // Create symlink to directory
-                if (!is_link($nhome) && !symlink($home, $nhome)) {
-                    throw new LoginException("Failed to create symlink to home directory");
+                // Check if the user already has matching storage on their root
+                $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
+                    return in_array($uid, $storage->getApplicableUsers()) && // User must own the storage
+                        $storage->getMountPoint() == "/" && // It must be mounted as root
+                        $storage->getBackend()->getIdentifier() == 'local' && // It must be type local
+                        count($storage->getApplicableUsers() == 1); // It can't be shared with other users
+                });
+
+                if(!empty($storages)) {
+                    // User had storage on their / so make sure it's the correct folder
+                    $storage = array_values($storages)[0];
+                    $options = $storage->getBackendOptions();
+                    
+                    if($options['datadir'] != $home) {
+                        $options['datadir'] = $home;
+                        $storage->setBackendOptions($options);
+                        $this->storagesService->updateStorage($storage);
+                    }
+                } else {
+                    // User didnt have any matching storage on their root, so make one
+                    $storage = $this->storagesService->createStorage('/', 'local', 'null::null', array(
+                        'datadir' => $home
+                    ), array(
+                        'enable_sharing' => true
+                    ));
+                    $storage->setApplicableUsers([$uid]);
+                    $this->storagesService->addStorage($storage);
+                }
+            } else {
+                // Make home directory if does not exist
+                mkdir($home, 0777, true);
+
+                // Home directory (intended) of the user
+                $nhome = "$datadir/$uid";
+
+                // Check if correct link or home directory exists
+                if (!file_exists($nhome) || is_link($nhome)) {
+                    // Unlink if invalid link
+                    if (is_link($nhome) && readlink($nhome) != $home) {
+                        unlink($nhome);
+                    }
+
+                    // Create symlink to directory
+                    if (!is_link($nhome) && !symlink($home, $nhome)) {
+                        throw new LoginException("Failed to create symlink to home directory");
+                    }
                 }
             }
         }

@@ -36,7 +36,7 @@ $CONFIG = array (
     //   ii)  name:     Full name
     //   iii) mail:     Email address
     //   iv)  quota:    NextCloud storage quota
-    //   v)   home:     Home directory location. A symlink to this location is used
+    //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
     //
     // The attributes in the OIDC response are flattened by adding the nested
@@ -63,6 +63,10 @@ $CONFIG = array (
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
     ),
+
+    // Use external storage instead of a symlink to the home directory
+    // Requires the files_external app to be enabled
+    'oidc_login_use_external_storage' => false,
 
     // Set OpenID Connect scope
     'oidc_login_scope' => 'openid profile',
