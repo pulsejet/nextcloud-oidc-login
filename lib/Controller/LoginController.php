@@ -246,9 +246,19 @@ class LoginController extends Controller
             }
 
             if (isset($profile['ownCloudGroups'])) {
+
+                // Add User to group
                 foreach ($profile['ownCloudGroups'] as $group)
-                if ($systemgroup = $this->groupManager->get($group)) {
-                    $systemgroup->addUser($user);
+                    if ($systemgroup = $this->groupManager->get($group)) {
+                        $systemgroup->addUser($user);
+                    }
+
+                // Remove User from group
+                $currentUserGroups = $this->groupManager->getUserGroups($user);
+                foreach ($currentUserGroups as $currentUserGroup) {
+                    if (!in_array($currentUserGroup, $profile['ownCloudGroups'])) {
+                        $this->groupManager->get($currentUserGroup)->removeUser($user);
+                    }
                 }
             }
 
