@@ -25,8 +25,8 @@ $CONFIG = array (
     // Redirect to this page after logging out the user
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
 
-    // Quota to assign if no quota is specified in the OIDC response
-    'oidc_login_default_quota' => '1000000',
+    // Quota to assign if no quota is specified in the OIDC response (bytes)
+    'oidc_login_default_quota' => '1000000000',
 
     // Login button text
     'oidc_login_button_text' => 'Log in with OpenID',
@@ -115,7 +115,7 @@ $CONFIG = array (
 		2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`
 		3. Set `Claim JSON Type` as `string`.
 2. Add a User `Attribute` to necessary user accounts in Keycloak.
-	1. Set `Key` as `ownCloudQuota` and `Value` to your preferred limit.
+	1. Set `Key` as `ownCloudQuota` and `Value` to your preferred limit (bytes).
 3. Necessary `config.php` settings (differing from above)
 ```php
 'oidc_login_provider_url' => 'https://keycloak.example.com/auth/realms/YOUR_REALM',
