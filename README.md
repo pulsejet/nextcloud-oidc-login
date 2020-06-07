@@ -38,6 +38,7 @@ $CONFIG = array (
     //   iv)  quota:    NextCloud storage quota
     //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
+    //   vii) groups:   Array or space separated string of NC groups for the user
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
@@ -62,6 +63,8 @@ $CONFIG = array (
         'mail' => 'email',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
+        'ldap_uid' => 'uid',
+        'groups' => 'ownCloudGroups',
     ),
 
     // Use external storage instead of a symlink to the home directory
