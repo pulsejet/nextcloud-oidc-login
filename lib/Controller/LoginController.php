@@ -67,10 +67,6 @@ class LoginController extends Controller
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
 
-        $config = [
-            'default_group' => ''
-        ];
-
         try {
             // Construct new client
             $oidc = new OpenIDConnectClient(
@@ -95,7 +91,7 @@ class LoginController extends Controller
             $user = $oidc->requestUserInfo();
 
             // Convert to PHP array and process
-            return $this->authSuccess(json_decode(json_encode($user), true), $config);
+            return $this->authSuccess(json_decode(json_encode($user), true));
 
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
@@ -110,13 +106,11 @@ class LoginController extends Controller
         }
     }
 
-    private function authSuccess($profile, array $config)
+    private function authSuccess($profile)
     {
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             $this->session->set('login_redirect_url', $redirectUrl);
         }
-
-        $profile['default_group'] = $config['default_group'];
 
         return $this->login($this->flatten($profile));
     }
@@ -137,6 +131,7 @@ class LoginController extends Controller
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
+            'groups' => 'ownCloudGroups',
         );
         $attr = array_merge($defattr, $confattr);
 
@@ -285,26 +280,33 @@ class LoginController extends Controller
                 };
             }
 
-            if (isset($profile['ownCloudGroups'])) {
+            // Add/remove user to/from groups
+            $groupNames = $profile[$attr['groups']];
+            if (isset($groupNames)) {
+                // Explode by space if string
+                if (is_string($groupNames)) {
+                    $groupNames = explode(' ', $groupNames);
+                }
 
-                // Add User to group
-                foreach ($profile['ownCloudGroups'] as $group)
+                // Make sure group names is an array
+                if (!is_array($groupNames)) {
+                    throw new LoginException($attr['groups'] . ' must be an array');
+                }
+
+                // Add user to group
+                foreach ($groupNames as $group) {
                     if ($systemgroup = $this->groupManager->get($group)) {
                         $systemgroup->addUser($user);
                     }
+                }
 
-                // Remove User from group
+                // Remove user from groups not present
                 $currentUserGroups = $this->groupManager->getUserGroups($user);
                 foreach ($currentUserGroups as $currentUserGroup) {
-                    if (!in_array($currentUserGroup, $profile['ownCloudGroups'])) {
-                        $this->groupManager->get($currentUserGroup)->removeUser($user);
+                    if (!in_array($currentUserGroup->getDisplayName(), $groupNames)) {
+                        $currentUserGroup->removeUser($user);
                     }
                 }
-            }
-
-            $defaultGroup = $profile['default_group'];
-            if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
-                $group->addUser($user);
             }
         }
 
