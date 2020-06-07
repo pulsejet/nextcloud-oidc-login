@@ -308,6 +308,13 @@ class LoginController extends Controller
                     }
                 }
             }
+
+            // Add default group if present
+            if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
+                if ($systemgroup = $this->groupManager->get($defaultGroup)) {
+                    $systemgroup->addUser($user);
+                }
+            }
         }
 
         // Complete login

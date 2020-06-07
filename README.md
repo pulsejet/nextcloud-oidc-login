@@ -67,6 +67,9 @@ $CONFIG = array (
         'groups' => 'ownCloudGroups',
     ),
 
+    // Default group to add users to (optional, defaults to nothing)
+    'oidc_login_default_group' => 'oidc',
+
     // Use external storage instead of a symlink to the home directory
     // Requires the files_external app to be enabled
     'oidc_login_use_external_storage' => false,
