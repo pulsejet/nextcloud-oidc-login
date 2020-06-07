@@ -293,18 +293,18 @@ class LoginController extends Controller
                     throw new LoginException($attr['groups'] . ' must be an array');
                 }
 
-                // Add user to group
-                foreach ($groupNames as $group) {
-                    if ($systemgroup = $this->groupManager->get($group)) {
-                        $systemgroup->addUser($user);
-                    }
-                }
-
                 // Remove user from groups not present
                 $currentUserGroups = $this->groupManager->getUserGroups($user);
                 foreach ($currentUserGroups as $currentUserGroup) {
                     if (!in_array($currentUserGroup->getDisplayName(), $groupNames)) {
                         $currentUserGroup->removeUser($user);
+                    }
+                }
+
+                // Add user to group
+                foreach ($groupNames as $group) {
+                    if ($systemgroup = $this->groupManager->get($group)) {
+                        $systemgroup->addUser($user);
                     }
                 }
             }
