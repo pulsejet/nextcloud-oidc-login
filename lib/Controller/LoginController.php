@@ -281,8 +281,10 @@ class LoginController extends Controller
             }
 
             // Add/remove user to/from groups
-            $groupNames = $profile[$attr['groups']];
-            if (isset($groupNames)) {
+            if (array_key_exists($attr['groups'], $profile)) {
+                // Get group names from profile
+                $groupNames = $profile[$attr['groups']];
+
                 // Explode by space if string
                 if (is_string($groupNames)) {
                     $groupNames = explode(' ', $groupNames);
