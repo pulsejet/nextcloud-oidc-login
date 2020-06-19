@@ -2,6 +2,7 @@
 
 namespace OCA\OIDCLogin\AppInfo;
 
+use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCP\AppFramework\App;
 use OCP\IURLGenerator;
 use OCP\IConfig;
@@ -34,6 +35,14 @@ class Application extends App
 
         $this->config = $this->query(IConfig::class);
 
+        // Get the container to pass special parameters
+        $container = $this->getContainer();
+
+        // Get Files_External storage service
+        $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
+            $this->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+        $container->registerParameter('storagesService', $storagesService);
+
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
 
@@ -61,6 +70,11 @@ class Application extends App
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
+                    // Do nothing if this is a CORS request
+                    if ($this->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
+                        return;
+                    }
+
                     header('Location: ' . $logoutUrl);
                     exit();
                 });

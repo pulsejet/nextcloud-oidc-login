@@ -31,6 +31,8 @@ class LoginController extends Controller
     private $session;
     /** @var IL10N */
     private $l;
+    /** @var \OCA\Files_External\Service\GlobalStoragesService */
+    private $storagesService;
 
 
     public function __construct(
@@ -42,7 +44,8 @@ class LoginController extends Controller
         IUserSession $userSession,
         IGroupManager $groupManager,
         ISession $session,
-        IL10N $l
+        IL10N $l,
+        $storagesService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -52,6 +55,7 @@ class LoginController extends Controller
         $this->groupManager = $groupManager;
         $this->session = $session;
         $this->l = $l;
+        $this->storagesService = $storagesService;
     }
 
     /**
@@ -62,10 +66,6 @@ class LoginController extends Controller
     public function oidc()
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
-
-        $config = [
-            'default_group' => ''
-        ];
 
         try {
             // Construct new client
@@ -91,7 +91,7 @@ class LoginController extends Controller
             $user = $oidc->requestUserInfo();
 
             // Convert to PHP array and process
-            return $this->authSuccess(json_decode(json_encode($user), true), $config);
+            return $this->authSuccess(json_decode(json_encode($user), true));
 
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
@@ -106,15 +106,13 @@ class LoginController extends Controller
         }
     }
 
-    private function authSuccess($profile, array $config)
+    private function authSuccess($profile)
     {
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             $this->session->set('login_redirect_url', $redirectUrl);
         }
 
-        $profile['default_group'] = $config['default_group'];
-
-        return $this->login($profile);
+        return $this->login($this->flatten($profile));
     }
 
     private function login($profile)
@@ -129,10 +127,11 @@ class LoginController extends Controller
         $defattr = array(
             'id' => 'sub',
             'name' => 'name',
-            'mail' => 'mail',
+            'mail' => 'email',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
+            'groups' => 'ownCloudGroups',
         );
         $attr = array_merge($defattr, $confattr);
 
@@ -211,22 +210,58 @@ class LoginController extends Controller
             // Get intended home directory
             $home = $profile[$attr['home']];
 
-            // Make home directory if does not exist
-            mkdir($home, 0777, true);
-
-            // Home directory (intended) of the user
-            $nhome = "$datadir/$uid";
-
-            // Check if correct link or home directory exists
-            if (!file_exists($nhome) || is_link($nhome)) {
-                // Unlink if invalid link
-                if (is_link($nhome) && readlink($nhome) != $home) {
-                    unlink($nhome);
+            if($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
+                // Check if the files external app is enabled and injected
+                if ($this->storagesService === null) {
+                    throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
                 }
 
-                // Create symlink to directory
-                if (!is_link($nhome) && !symlink($home, $nhome)) {
-                    throw new LoginException("Failed to create symlink to home directory");
+                // Check if the user already has matching storage on their root
+                $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
+                    return in_array($uid, $storage->getApplicableUsers()) && // User must own the storage
+                        $storage->getMountPoint() == "/" && // It must be mounted as root
+                        $storage->getBackend()->getIdentifier() == 'local' && // It must be type local
+                        count($storage->getApplicableUsers() == 1); // It can't be shared with other users
+                });
+
+                if(!empty($storages)) {
+                    // User had storage on their / so make sure it's the correct folder
+                    $storage = array_values($storages)[0];
+                    $options = $storage->getBackendOptions();
+                    
+                    if($options['datadir'] != $home) {
+                        $options['datadir'] = $home;
+                        $storage->setBackendOptions($options);
+                        $this->storagesService->updateStorage($storage);
+                    }
+                } else {
+                    // User didnt have any matching storage on their root, so make one
+                    $storage = $this->storagesService->createStorage('/', 'local', 'null::null', array(
+                        'datadir' => $home
+                    ), array(
+                        'enable_sharing' => true
+                    ));
+                    $storage->setApplicableUsers([$uid]);
+                    $this->storagesService->addStorage($storage);
+                }
+            } else {
+                // Make home directory if does not exist
+                mkdir($home, 0777, true);
+
+                // Home directory (intended) of the user
+                $nhome = "$datadir/$uid";
+
+                // Check if correct link or home directory exists
+                if (!file_exists($nhome) || is_link($nhome)) {
+                    // Unlink if invalid link
+                    if (is_link($nhome) && readlink($nhome) != $home) {
+                        unlink($nhome);
+                    }
+
+                    // Create symlink to directory
+                    if (!is_link($nhome) && !symlink($home, $nhome)) {
+                        throw new LoginException("Failed to create symlink to home directory");
+                    }
                 }
             }
         }
@@ -245,9 +280,42 @@ class LoginController extends Controller
                 };
             }
 
-            $defaultGroup = $profile['default_group'];
-            if ($defaultGroup && $group = $this->groupManager->get($defaultGroup)) {
-                $group->addUser($user);
+            // Add/remove user to/from groups
+            if (array_key_exists($attr['groups'], $profile)) {
+                // Get group names from profile
+                $groupNames = $profile[$attr['groups']];
+
+                // Explode by space if string
+                if (is_string($groupNames)) {
+                    $groupNames = explode(' ', $groupNames);
+                }
+
+                // Make sure group names is an array
+                if (!is_array($groupNames)) {
+                    throw new LoginException($attr['groups'] . ' must be an array');
+                }
+
+                // Remove user from groups not present
+                $currentUserGroups = $this->groupManager->getUserGroups($user);
+                foreach ($currentUserGroups as $currentUserGroup) {
+                    if (!in_array($currentUserGroup->getDisplayName(), $groupNames)) {
+                        $currentUserGroup->removeUser($user);
+                    }
+                }
+
+                // Add user to group
+                foreach ($groupNames as $group) {
+                    if ($systemgroup = $this->groupManager->get($group)) {
+                        $systemgroup->addUser($user);
+                    }
+                }
+            }
+
+            // Add default group if present
+            if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
+                if ($systemgroup = $this->groupManager->get($defaultGroup)) {
+                    $systemgroup->addUser($user);
+                }
             }
         }
 
@@ -270,5 +338,17 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function flatten($array, $prefix = '') {
+        $result = array();
+        foreach($array as $key => $value) {
+            if(is_array($value)) {
+                $result = $result + $this->flatten($value, $prefix . $key . '_');
+            } else {
+                $result[$prefix . $key] = $value;
+            }
+        }
+        return $result;
     }
 }

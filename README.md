@@ -25,8 +25,8 @@ $CONFIG = array (
     // Redirect to this page after logging out the user
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
 
-    // Quota to assign if no quota is specified in the OIDC response
-    'oidc_login_default_quota' => '1000000',
+    // Quota to assign if no quota is specified in the OIDC response (bytes)
+    'oidc_login_default_quota' => '1000000000',
 
     // Login button text
     'oidc_login_button_text' => 'Log in with OpenID',
@@ -36,15 +36,43 @@ $CONFIG = array (
     //   ii)  name:     Full name
     //   iii) mail:     Email address
     //   iv)  quota:    NextCloud storage quota
-    //   v)   home:     Home directory location. A symlink to this location is used
+    //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
+    //   vii) groups:   Array or space separated string of NC groups for the user
+    //
+    // The attributes in the OIDC response are flattened by adding the nested
+    // array key as the prefix and an underscore. Thus,
+    //
+    //     $profile = [
+    //         'id' => 1234,
+    //         'attributes' => [
+    //             'uid' => 'myuid'
+    //         ]
+    //     ];
+    //
+    // would become,
+    //
+    //     $profile = [
+    //         'id' => 1234,
+    //         'attributes_uid' => 'myuid'
+    //     ]
+    //
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => 'name',
-        'mail' => 'mail',
+        'mail' => 'email',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
+        'ldap_uid' => 'uid',
+        'groups' => 'ownCloudGroups',
     ),
+
+    // Default group to add users to (optional, defaults to nothing)
+    'oidc_login_default_group' => 'oidc',
+
+    // Use external storage instead of a symlink to the home directory
+    // Requires the files_external app to be enabled
+    'oidc_login_use_external_storage' => false,
 
     // Set OpenID Connect scope
     'oidc_login_scope' => 'openid profile',
@@ -94,8 +122,7 @@ $CONFIG = array (
     5. Set `Name` and `Token Claim Name` to `ownCloudGroups` and select your Client ID.
     6. Set `Claim JSON Type` as `String`.
     7. Add or edit a User and go to `Attributes`.
-    8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit.
-	
+    8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
 3. Necessary `config.php` settings (differing from above)
 ```php
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
