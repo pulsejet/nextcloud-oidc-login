@@ -112,7 +112,7 @@ class LoginController extends Controller
             $this->session->set('login_redirect_url', $redirectUrl);
         }
 
-        return $this->login($this->flatten($profile));
+        return $this->login($profile);
     }
 
     private function login($profile)
@@ -134,6 +134,9 @@ class LoginController extends Controller
             'groups' => 'ownCloudGroups',
         );
         $attr = array_merge($defattr, $confattr);
+
+        // Flatten the profile array excluding attributes
+        $profile = $this->flatten($profile, $attr);
 
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
@@ -340,11 +343,11 @@ class LoginController extends Controller
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
     }
 
-    private function flatten($array, $prefix = '') {
+    private function flatten($array, $exclude, $prefix = '') {
         $result = array();
         foreach($array as $key => $value) {
-            if(is_array($value)) {
-                $result = $result + $this->flatten($value, $prefix . $key . '_');
+            if (is_array($value) && !in_array($key, $exclude)) {
+                $result = $result + $this->flatten($value, $exclude, $prefix . $key . '_');
             } else {
                 $result[$prefix . $key] = $value;
             }
