@@ -110,9 +110,7 @@ $CONFIG = array (
     1. Set a `Client ID` and save.
     2. Set `Access type` to `confidential` 
 	3. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/*`.
-	4. Open the  `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to e.g. `RS512` and save.
-	
-	Note: Only HS256, HS384, HS512, RS256, RS384, RS512 is supported.
+	4. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
 	
 2. Open your created Client and go to `Mappers`. (optional)
     1. Click `create` and set `Mapper Type` to `User Attribute`.
