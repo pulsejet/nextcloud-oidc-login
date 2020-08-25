@@ -1,14 +1,14 @@
-# NextCloud OIDC Login
+# Nextcloud OIDC Login
 
 Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute.
 
 ## Config
 
-All configuration for the app is directly picked up from NextCloud's system configuration file (`config.php`). The following properties (with their descriptions) are valid configuration entries.
+All configuration for the app is directly picked up from Nextcloud's system configuration file (`config.php`). The following properties (with their descriptions) are valid configuration entries.
 
 ```php
 $CONFIG = array (
-    // Some NextCloud options that might make sense here
+    // Some Nextcloud options that might make sense here
     'allow_user_to_change_display_name' => false,
     'lost_password_link' => 'disabled',
 
@@ -35,7 +35,7 @@ $CONFIG = array (
     //   i)   id:       Unique identifier for username
     //   ii)  name:     Full name
     //   iii) mail:     Email address
-    //   iv)  quota:    NextCloud storage quota
+    //   iv)  quota:    Nextcloud storage quota
     //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
     //   vii) groups:   Array or space separated string of NC groups for the user
