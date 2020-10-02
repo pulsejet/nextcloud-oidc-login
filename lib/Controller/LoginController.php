@@ -178,7 +178,7 @@ class LoginController extends Controller
         }
 
         // Get UID
-        $uid = preg_replace('#.*/#', '', rtrim($profile[$attr['id']], '/'));
+        $uid = $profile[$attr['id']];
         if (empty($uid)) {
             throw new LoginException($this->l->t('Can not get identifier from provider'));
         }

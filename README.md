@@ -82,6 +82,9 @@ $CONFIG = array (
     // will get the existing user from an LDAP database and only
     // perform authentication with OIDC. All user data will be derived
     // from the LDAP database instead of the OIDC user response
+    //
+    // The `id` attribute in `oidc_login_attributes` must return the
+    // "Internal Username" (see expert settings in LDAP integration)
     'oidc_login_proxy_ldap' => false,
 
     // Disable creation of new users from OIDC login
