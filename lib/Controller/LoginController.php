@@ -174,7 +174,11 @@ class LoginController extends Controller
             if ($ldapUser == NULL) {
                 throw new LoginException($this->l->t('Error getting user from LDAP'));
             }
-            $ldapUser->update();
+
+            // Method no longer exists on NC 20+
+            if (method_exists($ldapUser, 'update')) {
+                $ldapUser->update();
+            }
         }
 
         // Get UID
