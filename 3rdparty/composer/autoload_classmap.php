@@ -6,6 +6,7 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = $vendorDir;
 
 return array(
+    'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Jumbojett\\OpenIDConnectClient' => $vendorDir . '/jumbojett/openid-connect-php/src/OpenIDConnectClient.php',
     'Jumbojett\\OpenIDConnectClientException' => $vendorDir . '/jumbojett/openid-connect-php/src/OpenIDConnectClient.php',
     'phpseclib\\Crypt\\AES' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Crypt/AES.php',
