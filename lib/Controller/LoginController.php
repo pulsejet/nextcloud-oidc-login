@@ -275,8 +275,13 @@ class LoginController extends Controller
 
         // Update user profile
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
-            $user->setEMailAddress((string)$profile[$attr['mail']]);
+            if ($attr['name'] !== null) {
+                $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
+            }
+
+            if ($attr['mail'] !== null) {
+                $user->setEMailAddress((string)$profile[$attr['mail']]);
+            }
 
             // Set optional params
             if (array_key_exists($attr['quota'], $profile)) {
