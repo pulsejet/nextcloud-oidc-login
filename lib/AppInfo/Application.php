@@ -80,7 +80,9 @@ class Application extends App
                     exit();
                 });
             }
-	    Util::addStyle($this->appName, 'server'); 
+            if ($hidePasswordForm = $this->config->getSystemValue('oidc_login_hide_password_form', false)) {
+                Util::addStyle($this->appName, 'oidc');
+	    }
             return;
         }
 

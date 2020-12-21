@@ -31,6 +31,9 @@ $CONFIG = array (
     // Login button text
     'oidc_login_button_text' => 'Log in with OpenID',
 
+    // Hide the NextCloud password change form.
+    'oidc_login_hide_password_form' => false,
+
     // Attribute map for OIDC response. Available keys are:
     //   i)   id:       Unique identifier for username
     //   ii)  name:     Full name
