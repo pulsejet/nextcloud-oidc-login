@@ -10,6 +10,7 @@ use OCP\IUserSession;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IL10N;
+use OCP\Util;
 
 class Application extends App
 {
@@ -79,6 +80,7 @@ class Application extends App
                     exit();
                 });
             }
+	    Util::addStyle($this->appName, 'server'); 
             return;
         }
 
