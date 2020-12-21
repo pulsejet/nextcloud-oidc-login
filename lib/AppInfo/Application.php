@@ -10,6 +10,7 @@ use OCP\IUserSession;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IL10N;
+use OCP\Util;
 
 class Application extends App
 {
@@ -78,6 +79,9 @@ class Application extends App
                     header('Location: ' . $logoutUrl);
                     exit();
                 });
+            }
+            if ($hidePasswordForm = $this->config->getSystemValue('oidc_login_hide_password_form', false)) {
+                Util::addStyle($this->appName, 'oidc');
             }
             return;
         }

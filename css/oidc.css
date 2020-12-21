@@ -1,0 +1,12 @@
+#security-password {
+    display: none;
+}
+
+#two-factor-auth  {
+    display: none;
+}
+
+#security-webauthn {
+    display: none;
+}
+
