@@ -135,7 +135,7 @@ class LoginController extends Controller
         );
         $attr = array_merge($defattr, $confattr);
 
-        // compute dynamic attributes
+        // Compute dynamic attributes
         foreach ($attr as $key => $value) {
             if (is_callable($value)) {
                 try {
