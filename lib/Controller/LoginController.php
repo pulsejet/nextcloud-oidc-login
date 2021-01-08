@@ -135,6 +135,21 @@ class LoginController extends Controller
         );
         $attr = array_merge($defattr, $confattr);
 
+        // compute dynamic attributes
+        foreach ($attr as $key => $value) {
+            if (is_callable($value)) {
+                try {
+                    $dynamic_attr = $value($profile);
+                }
+                catch (exception $e) {
+                    continue;
+                }
+                $new_key = spl_object_hash($value);
+                $attr[$key] = $new_key;
+                $profile[$new_key] = $dynamic_attr;
+            }
+        }
+
         // Flatten the profile array excluding attributes
         $profile = $this->flatten($profile, $attr);
 

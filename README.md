@@ -43,6 +43,11 @@ $CONFIG = array (
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
     //   vii) groups:   Array or space separated string of NC groups for the user
     //
+    // In addition, it is also possible to provide a function to dynamically compute the value of a property.
+    // This function will receive the OIDC response as parameter in the form of an associative array.
+    // See the example below which assign to the displayname the value of the attribute "name" if defined,
+    // or the value of the attribute "email".
+    //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
     //
@@ -62,7 +67,9 @@ $CONFIG = array (
     //
     'oidc_login_attributes' => array (
         'id' => 'sub',
-        'name' => 'name',
+        'name' => function ($profile) {
+            return $profile['name'] ?: $profile['email'];
+        },
         'mail' => 'email',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
