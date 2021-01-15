@@ -68,7 +68,7 @@ $CONFIG = array (
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => function ($profile) {
-            return $profile['name'] ?: $profile['email'];
+            return isset($profile['name']) ? $profile['name'] : $profile['email'];
         },
         'mail' => 'email',
         'quota' => 'ownCloudQuota',
