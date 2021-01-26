@@ -125,15 +125,32 @@ class LoginController extends Controller
         // Get attributes
         $confattr = $this->config->getSystemValue('oidc_login_attributes', array());
         $defattr = array(
-            'id' => 'sub',
-            'name' => 'name',
-            'mail' => 'email',
-            'quota' => 'ownCloudQuota',
-            'home' => 'homeDirectory',
-            'ldap_uid' => 'uid',
-            'groups' => 'ownCloudGroups',
+            'id' => '{{ sub }}',
+            'name' => '{{ name }}',
+            'mail' => '{{ email }}',
+            'quota' => '{{ ownCloudQuota }}',
+            'home' => '{{ homeDirectory }}',
+            'ldap_uid' => '{{ uid }}',
+            'groups' => '{{ ownCloudGroups }}',
         );
         $attr = array_merge($defattr, $confattr);
+
+        // Render attributes from templates
+        $loader = new \Twig\Loader\ArrayLoader($attr);
+        $twig = new \Twig\Environment($loader);
+        foreach ($attr as $key => $value) {
+            try {
+                $dynamic_attr = $twig->render($key, $profile);
+            }
+            catch (\Twig\Error\SyntaxError $e) {
+                continue;
+            }
+            if (!empty($dynamic_attr)) {
+                $new_key = "_rendered_$key";
+                $attr[$key] = $new_key;
+                $profile[$new_key] = $dynamic_attr;
+            }
+        }
 
         // Flatten the profile array excluding attributes
         $profile = $this->flatten($profile, $attr);

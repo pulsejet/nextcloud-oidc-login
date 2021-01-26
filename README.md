@@ -43,6 +43,10 @@ $CONFIG = array (
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
     //   vii) groups:   Array or space separated string of NC groups for the user
     //
+    // Value associated with those keys are rendered from Twig template (https://twig.symfony.com/doc)
+    // See the example below which assign to the displayname the value of the attribute "name" if defined,
+    // or the value of the attribute "email".
+    //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
     //
@@ -61,13 +65,13 @@ $CONFIG = array (
     //     ]
     //
     'oidc_login_attributes' => array (
-        'id' => 'sub',
-        'name' => 'name',
-        'mail' => 'email',
-        'quota' => 'ownCloudQuota',
-        'home' => 'homeDirectory',
-        'ldap_uid' => 'uid',
-        'groups' => 'ownCloudGroups',
+        'id' => '{{ sub }}',
+        'name' => '{{ name | default(email) }}',
+        'mail' => '{{ email }}',
+        'quota' => '{{ ownCloudQuota }}',
+        'home' => '{{ homeDirectory }}',
+        'ldap_uid' => '{{ uid }}',
+        'groups' => '{{ ownCloudGroups }}',
     ),
 
     // Default group to add users to (optional, defaults to nothing)
