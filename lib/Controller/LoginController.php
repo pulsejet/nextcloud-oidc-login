@@ -323,6 +323,16 @@ class LoginController extends Controller
                 }
             }
 
+            // Manage administrator role
+            if ($adminAttribute = $this->config->getSystemValue('oidc_login_admin_attribute')) {
+                $systemgroup = $this->groupManager->get('admin');
+                if (array_key_exists($adminAttribute, $profile) && $profile[$adminAttribute]) {
+                    $systemgroup->addUser($user);
+                } else {
+                    $systemgroup->removeUser($user);
+                }
+            }
+
             // Add default group if present
             if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
                 if ($systemgroup = $this->groupManager->get($defaultGroup)) {
