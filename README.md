@@ -109,6 +109,10 @@ $CONFIG = array (
     // For development, you may disable TLS verification. Default value is `true`
     // which should be kept in production
     'oidc_login_tls_verify' => true,
+    
+    // If you get your groups from the oidc_login_attributes, you might want 
+    // to create them if they are not already existing, Default is `false`.
+    'oidc_create_groups' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
