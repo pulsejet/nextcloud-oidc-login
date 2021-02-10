@@ -135,8 +135,8 @@ class LoginController extends Controller
         );
         $attr = array_merge($defattr, $confattr);
 
-        // Flatten the profile array excluding attributes
-        $profile = $this->flatten($profile, $attr);
+        // Flatten the profile array
+        $profile = $this->flatten($profile);
 
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
@@ -361,13 +361,15 @@ class LoginController extends Controller
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
     }
 
-    private function flatten($array, $exclude, $prefix = '') {
+    private function flatten($array, $prefix = '') {
         $result = array();
         foreach($array as $key => $value) {
-            if (is_array($value) && !in_array($key, $exclude)) {
-                $result = $result + $this->flatten($value, $exclude, $prefix . $key . '_');
-            } else {
-                $result[$prefix . $key] = $value;
+            $result[$prefix . $key] = $value;
+            if (is_array($value)) {
+                $result = $result + $this->flatten($value, $prefix . $key . '_');
+            }
+            if (is_int($key) && is_string($value)) {
+                $result[$prefix . $value] = $value;
             }
         }
         return $result;

@@ -51,15 +51,27 @@ $CONFIG = array (
     //     $profile = [
     //         'id' => 1234,
     //         'attributes' => [
-    //             'uid' => 'myuid'
-    //         ]
+    //             'uid' => 'myuid',
+    //             'abc' => 'xyz'
+    //         ],
+    //         'list' => ['one', 'two']
     //     ];
     //
     // would become,
     //
     //     $profile = [
     //         'id' => 1234,
-    //         'attributes_uid' => 'myuid'
+    //         'attributes' => [
+    //             'uid' => 'myuid',
+    //             'abc' => 'xyz'
+    //         ],
+    //         'attributes_uid' => 'myuid',
+    //         'attributes_abc' => 'xyz',
+    //         'list' => ['one', 'two'],
+    //         'list_0' => 'one',
+    //         'list_1' => 'two',
+    //         'list_one' => 'one',
+    //         'list_two' => 'two',
     //     ]
     //
     // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
