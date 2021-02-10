@@ -88,6 +88,10 @@ $CONFIG = array (
         'groups' => 'ownCloudGroups',
     ),
 
+    // Name of the boolean attribute that specifies for each user if he should be a member of the administrator group,
+    // regardless of the group mapping.
+    'oidc_login_admin_attribute' => 'is_admin',
+
     // Default group to add users to (optional, defaults to nothing)
     'oidc_login_default_group' => 'oidc',
 
