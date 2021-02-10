@@ -44,6 +44,7 @@ $CONFIG = array (
     //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
     //   vii) groups:   Array or space separated string of NC groups for the user
+    //   viii)is_admin: If this value is truthy, the user is added to the admin group (optional)
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
@@ -86,6 +87,7 @@ $CONFIG = array (
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',
         'groups' => 'ownCloudGroups',
+        'is_admin' => 'ownCloudAdmin',
     ),
 
     // Default group to add users to (optional, defaults to nothing)
