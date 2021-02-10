@@ -317,12 +317,17 @@ class LoginController extends Controller
 
                 // Add user to group
                 foreach ($groupNames as $group) {
-                    if ($systemgroup = $this->groupManager->get($group)) {
+                    // Get existing group
+                    $systemgroup = $this->groupManager->get($group);
+
+                    // Create group if does not exist
+                    if (!$systemgroup && $this->config->getSystemValue('oidc_create_groups', false)) {
+                        $systemgroup = $this->groupManager->createGroup($group);
+                    }
+
+                    // Add user to group
+                    if ($systemgroup) {
                         $systemgroup->addUser($user);
-                    } else if($this->config->getSystemValue('oidc_create_groups', false) ){
-                        if($systemgroup = $this->groupManager->createGroup($group)) {
-                            $systemgroup->addUser($user);
-                        }
                     }
                 }
             }
