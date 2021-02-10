@@ -37,7 +37,9 @@ $CONFIG = array (
     // Attribute map for OIDC response. Available keys are:
     //   i)   id:       Unique identifier for username
     //   ii)  name:     Full name
+    //                  If set to null, existing display name won't be overwritten
     //   iii) mail:     Email address
+    //                  If set to null, existing email address won't be overwritten
     //   iv)  quota:    Nextcloud storage quota
     //   v)   home:     Home directory location. A symlink or external storage to this location is used
     //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
@@ -59,6 +61,10 @@ $CONFIG = array (
     //         'id' => 1234,
     //         'attributes_uid' => 'myuid'
     //     ]
+    //
+    // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+    //
+    // note: on Keycloak, OIDC name claim = "${given_name} ${family_name}" or one of them if any is missing
     //
     'oidc_login_attributes' => array (
         'id' => 'sub',
