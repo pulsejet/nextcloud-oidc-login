@@ -35,16 +35,16 @@ $CONFIG = array (
     'oidc_login_hide_password_form' => false,
 
     // Attribute map for OIDC response. Available keys are:
-    //   i)   id:       Unique identifier for username
-    //   ii)  name:     Full name
+    //   * id:       Unique identifier for username
+    //   * name:     Full name
     //                  If set to null, existing display name won't be overwritten
-    //   iii) mail:     Email address
+    //   * mail:     Email address
     //                  If set to null, existing email address won't be overwritten
-    //   iv)  quota:    Nextcloud storage quota
-    //   v)   home:     Home directory location. A symlink or external storage to this location is used
-    //   vi)  ldap_uid: LDAP uid to search for when running in proxy mode
-    //   vii) groups:   Array or space separated string of NC groups for the user
-    //   viii)is_admin: If this value is truthy, the user is added to the admin group (optional)
+    //   * quota:    Nextcloud storage quota
+    //   * home:     Home directory location. A symlink or external storage to this location is used
+    //   * ldap_uid: LDAP uid to search for when running in proxy mode
+    //   * groups:   Array or space separated string of NC groups for the user
+    //   * is_admin: If this value is truthy, the user is added to the admin group (optional)
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
