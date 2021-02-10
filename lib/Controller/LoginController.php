@@ -333,9 +333,9 @@ class LoginController extends Controller
             }
 
             // Manage administrator role
-            if ($adminAttribute = $this->config->getSystemValue('oidc_login_admin_attribute')) {
+            if (array_key_exists('is_admin', $attr) && $adminAttr = $attr['is_admin']) {
                 $systemgroup = $this->groupManager->get('admin');
-                if (array_key_exists($adminAttribute, $profile) && $profile[$adminAttribute]) {
+                if (array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
                     $systemgroup->addUser($user);
                 } else {
                     $systemgroup->removeUser($user);
