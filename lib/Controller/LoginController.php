@@ -286,11 +286,7 @@ class LoginController extends Controller
             // Set optional params
             if (array_key_exists($attr['quota'], $profile)) {
                 $user->setQuota((string) $profile[$attr['quota']]);
-            } else {
-                if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
-                    $user->setQuota((string) $defaultQuota);
-                };
-            }
+            } 
 
             // Add/remove user to/from groups
             if (array_key_exists($attr['groups'], $profile)) {
