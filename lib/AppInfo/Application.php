@@ -39,9 +39,12 @@ class Application extends App
         // Get the container to pass special parameters
         $container = $this->getContainer();
 
-        // Get Files_External storage service
-        $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-            $this->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+        // Try to get Files_External storage service
+        $storagesService = null;
+        try {
+            $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
+                $this->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+        } catch (Exception $e) {}
         $container->registerParameter('storagesService', $storagesService);
 
         // Check if automatic redirection is enabled
