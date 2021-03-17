@@ -191,6 +191,14 @@ class LoginController extends Controller
         if (strlen($uid) > 64) {
             $uid = md5($uid);
         }
+        
+        // Force a UID for existing users with a different user ID in nextcloud than in LDAP 
+        if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
+            $existingUserMapping=$ldap->dn2UserName($dn);
+	    if ($existingUserMapping !== false) {
+                $uid=$existingUserMapping;
+            }
+        }
 
         // Get user with fallback
         $user = $this->userManager->get($uid);
