@@ -292,6 +292,21 @@ class LoginController extends Controller
                 };
             }
 
+            // Determine if we have to add the user to the admin group.
+            // - null: unspecified, deal with `admin` like a normal group.
+            // - true: explicitly admin, add the user in any case.
+            // - false: not admin, remove the user from `admin`.
+            $isAdmin = null;
+            if (array_key_exists('is_admin', $attr) && $adminAttr = $attr['is_admin']) {
+                $isAdmin = array_key_exists($adminAttr, $profile) && $profile[$adminAttr];
+            }
+
+            // Get default group if it exists.
+            $defaultGroup = $this->config->getSystemValue('oidc_login_default_group');
+            if ($defaultGroup && !$this->groupManager->get($defaultGroup)) {
+                $defaultGroup = null;
+            }
+
             // Add/remove user to/from groups
             if (array_key_exists($attr['groups'], $profile)) {
                 // Get group names from profile
@@ -305,6 +320,16 @@ class LoginController extends Controller
                 // Make sure group names is an array
                 if (!is_array($groupNames)) {
                     throw new LoginException($attr['groups'] . ' must be an array');
+                }
+
+                // Admin group
+                if ($isAdmin) {
+                    array_push($groupNames, 'admin');
+                }
+
+                // Default group
+                if ($defaultGroup) {
+                    array_push($groupNames, $defaultGroup);
                 }
 
                 // Remove user from groups not present
@@ -330,22 +355,24 @@ class LoginController extends Controller
                         $systemgroup->addUser($user);
                     }
                 }
-            }
+            } else {
+                // We only need to manage certain special groups.
+                // This is a separate branch, since it must not touch other group memberships.
 
-            // Manage administrator role
-            if (array_key_exists('is_admin', $attr) && $adminAttr = $attr['is_admin']) {
-                $systemgroup = $this->groupManager->get('admin');
-                if (array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
-                    $systemgroup->addUser($user);
-                } else {
-                    $systemgroup->removeUser($user);
+                // Manage administrator role
+                if ($is_admin !== null) {
+                    $systemgroup = $this->groupManager->get('admin');
+                    if ($is_admin) {
+                        $systemgroup->addUser($user);
+                    } else {
+                        $systemgroup->removeUser($user);
+                    }
                 }
-            }
 
-            // Add default group if present
-            if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
-                if ($systemgroup = $this->groupManager->get($defaultGroup)) {
-                    $systemgroup->addUser($user);
+                // Add default group if present
+                if ($defaultGroup) {
+                    // We checked that the group exists above.
+                    $this->groupManager->get($defaultGroup)->addUser($user);
                 }
             }
         }
