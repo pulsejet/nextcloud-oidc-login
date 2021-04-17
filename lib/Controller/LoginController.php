@@ -138,6 +138,9 @@ class LoginController extends Controller
         // Flatten the profile array
         $profile = $this->flatten($profile);
 
+        // Get UID
+        $uid = $profile[$attr['id']];
+
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
             // Get LDAP uid
@@ -179,10 +182,13 @@ class LoginController extends Controller
             if (method_exists($ldapUser, 'update')) {
                 $ldapUser->update();
             }
+
+            // Force a UID for existing users with a different
+            // user ID in nextcloud than in LDAP
+            $uid = $ldap->dn2UserName($dn) ?: $uid;
         }
 
-        // Get UID
-        $uid = $profile[$attr['id']];
+        // Check UID
         if (empty($uid)) {
             throw new LoginException($this->l->t('Can not get identifier from provider'));
         }
@@ -190,14 +196,6 @@ class LoginController extends Controller
         // Check max length of uid
         if (strlen($uid) > 64) {
             $uid = md5($uid);
-        }
-        
-        // Force a UID for existing users with a different user ID in nextcloud than in LDAP 
-        if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            $existingUserMapping=$ldap->dn2UserName($dn);
-	    if ($existingUserMapping !== false) {
-                $uid=$existingUserMapping;
-            }
         }
 
         // Get user with fallback
