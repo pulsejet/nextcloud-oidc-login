@@ -298,59 +298,67 @@ class LoginController extends Controller
                 };
             }
 
-            // Add/remove user to/from groups
-            if (array_key_exists($attr['groups'], $profile)) {
-                // Get group names from profile
-                $groupNames = $profile[$attr['groups']];
+            // Groups to add user in
+            $groupNames = [];
 
-                // Explode by space if string
-                if (is_string($groupNames)) {
-                    $groupNames = array_filter(explode(' ', $groupNames));
-                }
-
-                // Make sure group names is an array
-                if (!is_array($groupNames)) {
-                    throw new LoginException($attr['groups'] . ' must be an array');
-                }
-
-                // Remove user from groups not present
-                $currentUserGroups = $this->groupManager->getUserGroups($user);
-                foreach ($currentUserGroups as $currentUserGroup) {
-                    if (!in_array($currentUserGroup->getDisplayName(), $groupNames)) {
-                        $currentUserGroup->removeUser($user);
-                    }
-                }
-
-                // Add user to group
-                foreach ($groupNames as $group) {
-                    // Get existing group
-                    $systemgroup = $this->groupManager->get($group);
-
-                    // Create group if does not exist
-                    if (!$systemgroup && $this->config->getSystemValue('oidc_create_groups', false)) {
-                        $systemgroup = $this->groupManager->createGroup($group);
-                    }
-
-                    // Add user to group
-                    if ($systemgroup) {
-                        $systemgroup->addUser($user);
-                    }
-                }
-            }
-
-            // Manage administrator role
+            // Add administrator group from attribute
             if (array_key_exists('is_admin', $attr) && $adminAttr = $attr['is_admin']) {
-                $systemgroup = $this->groupManager->get('admin');
                 if (array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
-                    $systemgroup->addUser($user);
-                } else {
-                    $systemgroup->removeUser($user);
+                    array_push($groupNames, 'admin');
                 }
             }
 
             // Add default group if present
             if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
-                if ($systemgroup = $this->groupManager->get($defaultGroup)) {
+                array_push($groupNames, $defaultGroup);
+            }
+
+            // Add user's groups from profile
+            if (array_key_exists($attr['groups'], $profile)) {
+                // Get group names
+                $profileGroups = $profile[$attr['groups']];
+
+                // Explode by space if string
+                if (is_string($profileGroups)) {
+                    $profileGroups = array_filter(explode(' ', $profileGroups));
+                }
+
+                // Make sure group names is an array
+                if (!is_array($profileGroups)) {
+                    throw new LoginException($attr['groups'] . ' must be an array');
+                }
+
+                // Add to all groups
+                $groupNames = array_merge($groupNames, $profileGroups);
+            }
+
+            // Remove duplicate groups
+            $groupNames = array_unique($groupNames);
+
+            // Remove user from groups not present
+            $currentUserGroups = $this->groupManager->getUserGroups($user);
+            foreach ($currentUserGroups as $currentUserGroup) {
+                if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames)) !== false) {
+                    // User is already in group - don't process further
+                    unset($groupNames[$key]);
+                } else {
+                    // User is not supposed to be in this group
+                    $currentUserGroup->removeUser($user);
+                }
+            }
+
+            // Add user to group
+            foreach ($groupNames as $group) {
+                // Get existing group
+                $systemgroup = $this->groupManager->get($group);
+
+                // Create group if does not exist
+                if (!$systemgroup && $this->config->getSystemValue('oidc_create_groups', false)) {
+                    $systemgroup = $this->groupManager->createGroup($group);
+                }
+
+                // Add user to group
+                if ($systemgroup) {
                     $systemgroup->addUser($user);
                 }
             }
