@@ -68,6 +68,11 @@ class Application extends App implements IBootstrap
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
+            // Halt processing if not logged in with OIDC
+            if (!$session->exists('is_oidc')) {
+                return;
+            }
+
             // Get the session of the user
             $uid = $userSession->getUser()->getUID();
 

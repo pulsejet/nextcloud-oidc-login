@@ -45,13 +45,12 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     * {@inheritdoc}
     */
     protected function startSession() {
-        // Do nothing
+        $this->session->set('is_oidc', 1);
     }
     /**
     * {@inheritdoc}
     */
     protected function commitSession() {
         $this->startSession();
-        // Do nothing
     }
 }
