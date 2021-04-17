@@ -299,7 +299,7 @@ class LoginController extends Controller
 
                 // Explode by space if string
                 if (is_string($groupNames)) {
-                    $groupNames = explode(' ', $groupNames);
+                    $groupNames = array_filter(explode(' ', $groupNames));
                 }
 
                 // Make sure group names is an array
