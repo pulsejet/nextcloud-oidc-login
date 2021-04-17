@@ -94,9 +94,12 @@ class Application extends App implements IBootstrap
                     exit();
                 });
             }
+
+            // Hide password change form
             if ($hidePasswordForm = $this->config->getSystemValue('oidc_login_hide_password_form', false)) {
                 Util::addStyle($this->appName, 'oidc');
             }
+
             return;
         }
 
