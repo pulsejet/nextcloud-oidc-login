@@ -2,6 +2,8 @@
 
 namespace OCA\OIDCLogin\Provider;
 
+require_once __DIR__ . '/../../3rdparty/autoload.php';
+
 use OCP\ISession;
 
 class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
