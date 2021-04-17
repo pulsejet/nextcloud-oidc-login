@@ -235,7 +235,7 @@ class LoginController extends Controller
                     // User had storage on their / so make sure it's the correct folder
                     $storage = array_values($storages)[0];
                     $options = $storage->getBackendOptions();
-                    
+
                     if($options['datadir'] != $home) {
                         $options['datadir'] = $home;
                         $storage->setBackendOptions($options);
