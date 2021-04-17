@@ -20,13 +20,12 @@ class Application extends App implements IBootstrap
 {
     private $appName = 'oidc_login';
 
-    private $providerUrl;
-
-    private $redirectUrl;
-    /** @var IConfig */
-    private $config;
-    /** @var IURLGenerator */
-    private $urlGenerator;
+	/** @var IURLGenerator */
+	protected $url;
+	/** @var IL10N */
+	protected $l;
+	/** @var Config */
+	protected $config;
 
     public function __construct()
     {
@@ -35,19 +34,22 @@ class Application extends App implements IBootstrap
 
     public function register(IRegistrationContext $context): void
     {
-        $l = $this->query(IL10N::class);
-        $this->urlGenerator = $this->query(IURLGenerator::class);
+        $context->registerAlternativeLogin(OIDCLoginOption::class);
+    }
 
-        $this->config = $this->query(IConfig::class);
-
-        // Get the container to pass special parameters
+    public function boot(IBootContext $context): void
+    {
         $container = $this->getContainer();
+        $this->$l = $container->query(IL10N::class);
+        $this->url = $container->query(IURLGenerator::class);
+        $this->config = $container->query(IConfig::class);
+        $request = $container->query(IRequest::class);
 
         // Try to get Files_External storage service
         $storagesService = null;
         try {
             $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-                $this->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+                $container->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
         } catch (Exception $e) {}
         $container->registerParameter('storagesService', $storagesService);
 
@@ -58,11 +60,11 @@ class Application extends App implements IBootstrap
         $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
 
         // URL for login without redirecting forcefully, false if we are not doing that
-        $noRedirLoginUrl = $useLoginRedirect ? $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
+        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
 
         // Get logged in user's session
-        $userSession = $this->query(IUserSession::class);
-        $session = $this->query(ISession::class);
+        $userSession = $container->query(IUserSession::class);
+        $session = $container->query(ISession::class);
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
@@ -93,16 +95,6 @@ class Application extends App implements IBootstrap
             return;
         }
 
-        // Get URLs
-        $request = $this->query(IRequest::class);
-        $this->redirectUrl = $request->getParam('redirect_url');
-        $this->providerUrl = $this->urlGenerator->linkToRoute($this->appName.'.login.oidc', [
-            'login_redirect_url' => $this->redirectUrl
-        ]);
-
-        // Add login button
-        $context->registerAlternativeLogin(OIDCLoginOption::class);
-
         // Redirect automatically or show alt login page
         if (array_key_exists('REQUEST_METHOD', $_SERVER) &&
             $_SERVER['REQUEST_METHOD'] === 'GET' &&
@@ -118,28 +110,22 @@ class Application extends App implements IBootstrap
                 $session->set('oidc_redir', '/');
             }
 
+            // Get URLs
+            $loginLink = OIDCLoginOption::getLoginLink($request, $this->url);
+
             // Force redirect
             if ($useLoginRedirect) {
-                header('Location: ' . $this->providerUrl);
+                header('Location: ' . $loginLink);
                 exit();
             }
 
             // Alt login page
             if ($altLoginPage) {
-                $OIDC_LOGIN_URL = $this->providerUrl;
+                $OIDC_LOGIN_URL = $loginLink;
                 header_remove('content-security-policy');
-                include $altLoginPage;
+                require $altLoginPage;
                 exit();
             }
         }
-    }
-
-    private function query($className)
-    {
-        return $this->getContainer()->query($className);
-    }
-
-    public function boot(IBootContext $context): void
-    {
 	}
 }

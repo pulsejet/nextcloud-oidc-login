@@ -38,11 +38,14 @@ class OIDCLoginOption implements IAlternativeLogin {
 
 	public function getLink(): string
 	{
-		$redirectUrl = $this->request->getParam('redirect_url');
-		$providerUrl = $this->url->linkToRoute('oidc_login.login.oidc', [
-			'login_redirect_url' => $redirectUrl
+		return $this->getLoginLink($this->request, $this->url);
+	}
+
+	public static function getLoginLink(&$request, &$url): string
+	{
+		return $url->linkToRoute('oidc_login.login.oidc', [
+			'login_redirect_url' => $request->getParam('redirect_url')
 		]);
-		return $providerUrl;
 	}
 
 	public function getClass(): string
