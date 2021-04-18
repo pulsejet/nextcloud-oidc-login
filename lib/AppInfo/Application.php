@@ -40,7 +40,7 @@ class Application extends App implements IBootstrap
     public function boot(IBootContext $context): void
     {
         $container = $context->getAppContainer();
-        $this->$l = $container->query(IL10N::class);
+        $this->l = $container->query(IL10N::class);
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
         $request = $container->query(IRequest::class);
