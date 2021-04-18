@@ -13,6 +13,7 @@ use OCP\IURLGenerator;
 use OCP\IGroupManager;
 use OCP\ISession;
 use OC\User\LoginException;
+use OC\Authentication\Token\DefaultTokenProvider;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 
 class LoginController extends Controller
@@ -365,8 +366,17 @@ class LoginController extends Controller
         }
 
         // Complete login
-        $this->userSession->completeLogin($user, ['loginName' => $user->getUID(), 'password' => '']);
+        $this->userSession->getSession()->regenerateId();
+        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
+        $this->userSession->setTokenProvider($tokenProvider);
         $this->userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
+        $token = $tokenProvider->getToken($this->userSession->getSession()->getId());
+
+        $this->userSession->completeLogin($user, [
+            'loginName' => $user->getUID(),
+            'password' => '',
+            'token' => $token,
+        ], false);
 
         // Go to redirection URI
         if ($redirectUrl = $this->session->get('login_redirect_url')) {
