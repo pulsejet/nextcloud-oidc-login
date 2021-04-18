@@ -85,7 +85,7 @@ class Application extends App
             if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
                     // Do nothing if this is a CORS request
-                    if ($this->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
+                    if ($this->getContainer()->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
                         return;
                     }
 
