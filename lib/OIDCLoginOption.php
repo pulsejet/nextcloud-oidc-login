@@ -3,14 +3,13 @@
 namespace OCA\OIDCLogin;
 
 use OCA\Registration\AppInfo\Application;
-use OCP\Authentication\IAlternativeLogin;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IRequest;
 use OCP\IConfig;
 use OCP\Util;
 
-class OIDCLoginOption implements IAlternativeLogin {
+class OIDCLoginOption {
 
 	/** @var IURLGenerator */
 	protected $url;

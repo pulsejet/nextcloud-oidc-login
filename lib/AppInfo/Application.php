@@ -13,12 +13,9 @@ use OCP\IRequest;
 use OCP\ISession;
 use OCP\IL10N;
 use OCP\Util;
-use OCP\AppFramework\Bootstrap\IBootContext;
-use OCP\AppFramework\Bootstrap\IBootstrap;
-use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCA\OIDCLogin\OIDCLoginOption;
 
-class Application extends App implements IBootstrap
+class Application extends App
 {
     private $appName = 'oidc_login';
 
@@ -34,14 +31,14 @@ class Application extends App implements IBootstrap
         parent::__construct($this->appName);
     }
 
-    public function register(IRegistrationContext $context): void
+    public function register(): void
     {
-        $context->registerAlternativeLogin(OIDCLoginOption::class);
+        $this->boot();
     }
 
-    public function boot(IBootContext $context): void
+    public function boot(): void
     {
-        $container = $context->getAppContainer();
+        $container = $this->getContainer();
         $this->l = $container->query(IL10N::class);
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
@@ -137,5 +134,10 @@ class Application extends App implements IBootstrap
                 exit();
             }
         }
+
+        \OC_App::registerLogIn([
+            'name' => $this->l->t($this->config->getSystemValue('oidc_login_button_text', 'OpenID Connect')),
+            'href' => OIDCLoginOption::getLoginLink($request, $this->url),
+        ]);
 	}
 }
