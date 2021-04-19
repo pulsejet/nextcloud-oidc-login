@@ -303,7 +303,9 @@ class LoginController extends Controller
             $groupNames = [];
 
             // Add administrator group from attribute
-            if (array_key_exists('is_admin', $attr) && $adminAttr = $attr['is_admin']) {
+            $manageAdmin = array_key_exists('is_admin', $attr) && $attr['is_admin'];
+            if ($manageAdmin) {
+                $adminAttr = $attr['is_admin'];
                 if (array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
                     array_push($groupNames, 'admin');
                 }
@@ -315,7 +317,8 @@ class LoginController extends Controller
             }
 
             // Add user's groups from profile
-            if (array_key_exists($attr['groups'], $profile)) {
+            $hasProfileGroups = array_key_exists($attr['groups'], $profile);
+            if ($hasProfileGroups) {
                 // Get group names
                 $profileGroups = $profile[$attr['groups']];
 
@@ -344,7 +347,11 @@ class LoginController extends Controller
                     unset($groupNames[$key]);
                 } else {
                     // User is not supposed to be in this group
-                    $currentUserGroup->removeUser($user);
+                    // Remove the user ONLY if we're using profile groups
+                    // or the group is the `admin` group and we manage admin role
+                    if ($hasProfileGroups || ($manageAdmin && $currentUserGroup->getDisplayName() === 'admin')) {
+                        $currentUserGroup->removeUser($user);
+                    }
                 }
             }
 
