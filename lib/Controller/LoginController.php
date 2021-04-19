@@ -202,6 +202,7 @@ class LoginController extends Controller
 
         // Get user with fallback
         $user = $this->userManager->get($uid);
+        $userPassword = '';
 
         // Create user if not existing
         if (null === $user) {
@@ -209,8 +210,8 @@ class LoginController extends Controller
                 throw new LoginException($this->l->t('Auto creating new users is disabled'));
             }
 
-            $password = substr(base64_encode(random_bytes(64)), 0, 30);
-            $user = $this->userManager->createUser($uid, $password);
+            $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
+            $user = $this->userManager->createUser($uid, $userPassword);
 
             $this->config->setUserValue($uid, $this->appName, 'disable_password_confirmation', 1);
         }
@@ -382,8 +383,8 @@ class LoginController extends Controller
 
         $this->userSession->completeLogin($user, [
             'loginName' => $user->getUID(),
-            'password' => '',
-            'token' => $token,
+            'password' => $userPassword,
+            'token' => empty($userPassword) ? $token : null,
         ], false);
 
         // Prevent being asked to change password
