@@ -212,8 +212,6 @@ class LoginController extends Controller
 
             $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
             $user = $this->userManager->createUser($uid, $userPassword);
-
-            $this->config->setUserValue($uid, $this->appName, 'disable_password_confirmation', 1);
         }
 
         // Get base data directory

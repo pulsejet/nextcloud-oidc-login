@@ -73,13 +73,8 @@ class Application extends App
                 return;
             }
 
-            // Get the session of the user
-            $uid = $userSession->getUser()->getUID();
-
             // Disable password confirmation for user
-            if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
-                $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
-            }
+            $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
 
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
