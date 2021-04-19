@@ -13,6 +13,7 @@ use OCP\IRequest;
 use OCP\ISession;
 use OCP\IL10N;
 use OCP\Util;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCA\OIDCLogin\OIDCLoginOption;
 
 class Application extends App
@@ -77,7 +78,7 @@ class Application extends App
 
             // Disable password confirmation for user
             if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
-                $session->set('last-password-confirm', time());
+                $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
             }
 
             /* Redirect to logout URL on completing logout
