@@ -12,6 +12,7 @@ use OCP\IUserManager;
 use OCP\IURLGenerator;
 use OCP\IGroupManager;
 use OCP\ISession;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OC\User\LoginException;
 use OC\Authentication\Token\DefaultTokenProvider;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
@@ -385,15 +386,15 @@ class LoginController extends Controller
             'token' => $token,
         ], false);
 
+        // Prevent being asked to change password
+        $this->session->set('last-password-confirm', \OC::$server->query(ITimeFactory::class)->getTime());
+
         // Go to redirection URI
         if ($redirectUrl = $this->session->get('login_redirect_url')) {
             return new RedirectResponse($redirectUrl);
         }
 
-        // Prevent being asked to change password
-        $this->session->set('last-password-confirm', time());
-
-        // Get redirection url
+        // Fallback redirection URI
         $redir = '/';
         if ($login_redir = $this->session->get('oidc_redir')) {
             $redir = $login_redir;

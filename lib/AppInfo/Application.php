@@ -16,6 +16,7 @@ use OCP\Util;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCA\OIDCLogin\OIDCLoginOption;
 
 class Application extends App implements IBootstrap
@@ -80,7 +81,7 @@ class Application extends App implements IBootstrap
 
             // Disable password confirmation for user
             if ($this->config->getUserValue($uid, $this->appName, 'disable_password_confirmation')) {
-                $session->set('last-password-confirm', time());
+                $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
             }
 
             /* Redirect to logout URL on completing logout
