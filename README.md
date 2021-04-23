@@ -26,6 +26,9 @@ $CONFIG = array (
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
 
     // Quota to assign if no quota is specified in the OIDC response (bytes)
+    //
+    // NOTE: If you want to allow NextCloud to manage quotas, omit this option. Do not set it to
+    // zero or -1 or ''.
     'oidc_login_default_quota' => '1000000000',
 
     // Login button text
