@@ -12,6 +12,8 @@ use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 
 class LoginService
 {
+    /** @var string */
+    private $appName;
     /** @var IConfig */
     private $config;
     /** @var IUserManager */
@@ -35,6 +37,7 @@ class LoginService
         IL10N $l,
         $storagesService
     ) {
+        $this->appName = $appName;
         $this->config = $config;
         $this->userManager = $userManager;
         $this->groupManager = $groupManager;
@@ -46,9 +49,9 @@ class LoginService
     public function createOIDCClient($callbackUrl = '') {
         $oidc = new OpenIDConnectClient(
             $this->session,
-            $this->config->getSystemValue('oidc_login_provider_url'),
-            $this->config->getSystemValue('oidc_login_client_id'),
-            $this->config->getSystemValue('oidc_login_client_secret'));
+            $this->config,
+            $this->appName,
+        );
         $oidc->setRedirectURL($callbackUrl);
 
         // set TLS development mode

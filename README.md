@@ -1,6 +1,6 @@
 # Nextcloud OIDC Login
 
-Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute.
+Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute. It also supports accessing Nextcloud WebDAV using a providers bearer token.
 
 ## Config
 
@@ -136,6 +136,17 @@ $CONFIG = array (
     // If you get your groups from the oidc_login_attributes, you might want
     // to create them if they are not already existing, Default is `false`.
     'oidc_create_groups' => false,
+
+    // Enable use of WebDAV via OIDC bearer token.
+    'oidc_login_webdav_enabled' => false,
+
+    // The time in seconds used to cache public keys from provider.
+    // The default value is 1 day.
+    'oidc_login_public_key_caching_time' => 86400,
+
+    // The minimum time in seconds to wait between requests to the jwks_uri endpoint.
+    // Avoids that the provider will be DoSed when someone requests with unknown kids.
+    'oidc_login_min_time_between_jwks_requests' => 10,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
