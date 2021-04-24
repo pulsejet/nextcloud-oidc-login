@@ -38,6 +38,16 @@ class Application extends App implements IBootstrap
     public function register(IRegistrationContext $context): void
     {
         $context->registerAlternativeLogin(OIDCLoginOption::class);
+
+        // Try to get Files_External storage service
+        $context->registerService('storagesService', function($container) {
+            $storagesService = null;
+            try {
+                $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
+                    $container->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+            } catch (Exception $e) {}
+            return $storagesService;
+        });
     }
 
     public function boot(IBootContext $context): void
@@ -47,14 +57,6 @@ class Application extends App implements IBootstrap
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
         $request = $container->query(IRequest::class);
-
-        // Try to get Files_External storage service
-        $storagesService = null;
-        try {
-            $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-                $container->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
-        } catch (Exception $e) {}
-        $container->registerParameter('storagesService', $storagesService);
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
