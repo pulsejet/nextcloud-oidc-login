@@ -146,7 +146,12 @@ $CONFIG = array (
 
     // The minimum time in seconds to wait between requests to the jwks_uri endpoint.
     // Avoids that the provider will be DoSed when someone requests with unknown kids.
+    // The default is 10 seconds.
     'oidc_login_min_time_between_jwks_requests' => 10,
+
+    // The time in seconds used to cache the OIDC well-known configuration from the provider.
+    // The default value is 1 day.
+    'oidc_login_well_known_caching_time' => 86400,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
