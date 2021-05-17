@@ -185,8 +185,10 @@ class LoginController extends Controller
                 $ldapUser->update();
             }
 
-            // fixes email update problem #84
-            $ldapUser->updateEmail();
+            // Update the email address (#84)
+            if (method_exists($ldapUser, 'updateEmail')) {
+                $ldapUser->updateEmail();
+            }
 
             // Force a UID for existing users with a different
             // user ID in nextcloud than in LDAP
