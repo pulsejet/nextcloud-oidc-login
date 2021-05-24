@@ -389,6 +389,9 @@ class LoginController extends Controller
             'password' => $userPassword,
             'token' => empty($userPassword) ? $token : null,
         ], false);
+        
+        //Workaround to create user files folder. Remove it later.
+        \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
         $this->session->set('last-password-confirm', \OC::$server->query(ITimeFactory::class)->getTime());
