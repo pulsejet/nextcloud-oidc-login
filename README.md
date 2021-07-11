@@ -189,3 +189,14 @@ $CONFIG = array (
 **Note:**
 - If necessary, restart Nextcloud to clear the APCu cache for the config file.
 - You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
+
+#### Configuration for WebDAV access
+
+The underlying OIDC library ensures, that the `aud` property of the JWT token contains the configured Nextcloud client ID (config option `oidc_login_client_id`).
+However, when obtaining an access token for a user with a client other than the Nextcloud client (e.g. using rclone), the `aud` property does not contain Nextclouds client ID.
+Thus, the login would fail. The following steps ensure, that access tokens obtained with your client always contain your Nextcloud client in the `aud` property.
+
+1. Go to `Client Scopes`
+1. Add new client scope, call it `nextcloud`.
+1. Under `Mappers` create a new mapper of type `Audience` and ensure that `Included Client Audience` contains your Nextcloud client. Click Save.
+1. Finally, go to `Client > your-client-to-obtain-access-token > Client Scopes` and add the new `nextcloud` scope.
