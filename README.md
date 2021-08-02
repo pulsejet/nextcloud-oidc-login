@@ -145,16 +145,23 @@ $CONFIG = array (
 	3. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/*`.
 	4. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
 
-2. Open your created Client and go to `Mappers`. (optional)
-    1. Click `create` and set `Mapper Type` to `User Attribute`.
-    2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`.
-    3. Set `Claim JSON Type` as `String`.
-    4. Click `create` and set `Mapper Type` to `User Client Role`.
-    5. Set `Name` and `Token Claim Name` to `ownCloudGroups` and select your Client ID.
-    6. Set `Claim JSON Type` as `String`.
-    7. Add or edit a User and go to `Attributes`.
-    8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
-3. Necessary `config.php` settings (differing from above)
+2. (optional) Create mapper for quota.
+    1. Open your created Client and go to `Mappers`.
+    2. Click `create` and set `Mapper Type` to `User Attribute`.
+    3. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`.
+    4. Set `Claim JSON Type` as `String`.
+    5. Add or edit a User and go to `Attributes`.
+    6. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
+
+3. (optional) Create mapper for groups.
+    1. Open your created Client and go to `Mappers`.
+    2. Click `create` and set `Mapper Type` to `User Client Role`.
+    3. Set `Name` and `Token Claim Name` to `ownCloudGroups` and select your Client ID.
+    4. Set `Claim JSON Type` as `String`.
+    5. Define the roles to be mapped to a Nextcloud group within the client (provided that you limited roles to that client, see the description for the "Client ID" field)
+    6. Assign these roles to users, either directly or via Keycloak groups.
+
+4. Necessary `config.php` settings (differing from above)
 ```php
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
 'oidc_login_client_secret' => 'secret', // Client Secret: Got to Clients -> Client -> Credentials
@@ -173,3 +180,4 @@ $CONFIG = array (
 **Note:**
 - If necessary, restart Nextcloud to clear the APCu cache for the config file.
 - You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
+- Only Keycloak **roles** are mapped to Nextcloud groups. Assigning users to a Keycloak **group** alone will do nothing unless roles/attributes are assigned to the group.
