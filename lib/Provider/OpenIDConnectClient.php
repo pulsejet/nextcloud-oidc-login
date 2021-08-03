@@ -53,4 +53,21 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     protected function commitSession() {
         $this->startSession();
     }
+    /**
+     * Gets the OIDC end session URL that will logout the user and redirect back to $post_logout_redirect_uri.
+     * 
+     * @param string $post_logout_redirect_uri Post signout redirect URL.
+     * 
+     * @return string The OIDC logout URL.
+     */
+    public function getEndSessionUrl($post_logout_redirect_uri)
+    {
+        $id_token_hint = $this->getIdToken();
+        $end_session_endpoint =  $this->getProviderConfigValue('end_session_endpoint');
+        $signout_params = array(
+            'id_token_hint' => $id_token_hint,
+            'post_logout_redirect_uri' => $post_logout_redirect_uri);
+        $end_session_endpoint  .= (strpos($end_session_endpoint, '?') === false ? '?' : '&') . http_build_query($signout_params);
+        return $end_session_endpoint;
+    }
 }
