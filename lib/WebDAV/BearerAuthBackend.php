@@ -89,18 +89,6 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener {
     }
 
     /**
-     * \Sabre\DAV\Auth\Backend\AbstractBearer::challenge sets an WWW-Authenticate
-     * header which some DAV clients can't handle. Thus we override this function
-     * and make it simply return a 401.
-     *
-     * @param RequestInterface $request
-     * @param ResponseInterface $response
-     */
-    public function challenge(RequestInterface $request, ResponseInterface $response) {
-        $response->setStatus(401);
-    }
-
-    /**
      * Tries to log in a user based on the given $bearerToken.
      * @param string $bearerToken An OIDC JWT bearer token.
      */
