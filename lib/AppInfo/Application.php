@@ -88,7 +88,7 @@ class Application extends App implements IBootstrap
 
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
-            if ($logoutUrl = $this->config->getSystemValue('oidc_login_logout_url', $noRedirLoginUrl)) {
+            if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
