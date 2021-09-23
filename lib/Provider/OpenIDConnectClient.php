@@ -96,7 +96,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             return $this->getWellKnown($url);
         }
         if($url === $this->getProviderConfigValue("jwks_uri")) {
-            // Cache jwks 
+            // Cache jwks
             return $this->getJWKs();
         }
         return parent::fetchURL($url, $post_body, $headers);
@@ -130,7 +130,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     private function getWellKnown(string $url) {
         $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_well_known', 0);
         $age = time() - $lastFetched;
-        
+
         if($age < $this->wellKnownCachingTime) {
             return $this->config->getAppValue($this->appName, 'well-known');
         }
@@ -147,7 +147,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * Fetches new signing keys and stores them for the configured amount of time.
      * This reduces the requests required to the provider and increases the response time,
      * especially when using WebDAV.
-     * 
+     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     private function getJWKs($ignore_cache = false) {
@@ -177,7 +177,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     /**
      * Validates the given bearer token by checking the validity of the tokens signature and claims.
-     * 
+     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     public function validateBearerToken($token) {
@@ -194,5 +194,30 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     public function getTokenPayload($token) {
         return $this->decodeJWT($token, 1);
+    }
+
+    /**
+     * Gets the OIDC end session URL that will logout the user and redirect back to $post_logout_redirect_uri.
+     *
+     * @param string $post_logout_redirect_uri Post signout redirect URL.
+     * @return string The OIDC logout URL.
+     */
+    public function getEndSessionUrl($post_logout_redirect_uri)
+    {
+        $id_token_hint = $this->getIdToken();
+        $end_session_endpoint = NULL;
+        try {
+            $end_session_endpoint = $this->getProviderConfigValue('end_session_endpoint');
+        } catch (\Exception $e) {
+            throw new \Exception("end_session_endpoint could not be fetched.\n".
+                                 "Your OIDC provider probably does not support logout.\n".
+                                 "Set \"oidc_login_end_session_redirect\" => false in Nextcloud config.");
+        }
+
+        $signout_params = array(
+            'id_token_hint' => $id_token_hint,
+            'post_logout_redirect_uri' => $post_logout_redirect_uri);
+        $end_session_endpoint  .= (strpos($end_session_endpoint, '?') === false ? '?' : '&') . http_build_query($signout_params);
+        return $end_session_endpoint;
     }
 }

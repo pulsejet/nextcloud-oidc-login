@@ -25,6 +25,12 @@ $CONFIG = array (
     // Redirect to this page after logging out the user
     'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
 
+    // If set to true the user will be redirected to the
+    // logout endpoint of the OIDC provider after logout
+    // in Nextcloud. After successfull logout the OIDC
+    // provider will redirect back to 'oidc_login_logout_url' (MUST be set).
+    'oidc_login_end_session_redirect' => false,
+
     // Quota to assign if no quota is specified in the OIDC response (bytes)
     //
     // NOTE: If you want to allow NextCloud to manage quotas, omit this option. Do not set it to
@@ -36,7 +42,7 @@ $CONFIG = array (
 
     // Hide the NextCloud password change form.
     'oidc_login_hide_password_form' => false,
-    
+
     // Use ID Token instead of UserInfo
     'oidc_login_use_id_token' => false,
 
