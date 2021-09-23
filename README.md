@@ -36,7 +36,7 @@ $CONFIG = array (
 
     // Hide the NextCloud password change form.
     'oidc_login_hide_password_form' => false,
-    
+
     // Use ID Token instead of UserInfo
     'oidc_login_use_id_token' => false,
 

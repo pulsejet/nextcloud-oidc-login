@@ -96,7 +96,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             return $this->getWellKnown($url);
         }
         if($url === $this->getProviderConfigValue("jwks_uri")) {
-            // Cache jwks 
+            // Cache jwks
             return $this->getJWKs();
         }
         return parent::fetchURL($url, $post_body, $headers);
@@ -130,7 +130,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     private function getWellKnown(string $url) {
         $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_well_known', 0);
         $age = time() - $lastFetched;
-        
+
         if($age < $this->wellKnownCachingTime) {
             return $this->config->getAppValue($this->appName, 'well-known');
         }
@@ -147,7 +147,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * Fetches new signing keys and stores them for the configured amount of time.
      * This reduces the requests required to the provider and increases the response time,
      * especially when using WebDAV.
-     * 
+     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     private function getJWKs($ignore_cache = false) {
@@ -177,7 +177,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     /**
      * Validates the given bearer token by checking the validity of the tokens signature and claims.
-     * 
+     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     public function validateBearerToken($token) {
