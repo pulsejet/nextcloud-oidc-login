@@ -89,8 +89,14 @@ class LoginController extends Controller
             // Authenticate
             $oidc->authenticate();
 
-            // Get user information from OIDC
-            $user = $oidc->requestUserInfo();
+            $user = NULL;
+            if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
+                // Get user information from ID Token
+                $user = $oidc->getIdTokenPayload();
+            } else {
+                // Get user information from OIDC
+                $user = $oidc->requestUserInfo();
+            }
 
             // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true));
@@ -389,7 +395,7 @@ class LoginController extends Controller
             'password' => $userPassword,
             'token' => empty($userPassword) ? $token : null,
         ], false);
-        
+
         //Workaround to create user files folder. Remove it later.
         \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
 
