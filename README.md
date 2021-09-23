@@ -1,6 +1,6 @@
 # Nextcloud OIDC Login
 
-Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute.
+Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalastic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute. It also supports accessing Nextcloud WebDAV using a providers bearer token.
 
 ## Config
 
@@ -139,6 +139,22 @@ $CONFIG = array (
     // If you get your groups from the oidc_login_attributes, you might want
     // to create them if they are not already existing, Default is `false`.
     'oidc_create_groups' => false,
+
+    // Enable use of WebDAV via OIDC bearer token.
+    'oidc_login_webdav_enabled' => false,
+
+    // The time in seconds used to cache public keys from provider.
+    // The default value is 1 day.
+    'oidc_login_public_key_caching_time' => 86400,
+
+    // The minimum time in seconds to wait between requests to the jwks_uri endpoint.
+    // Avoids that the provider will be DoSed when someone requests with unknown kids.
+    // The default is 10 seconds.
+    'oidc_login_min_time_between_jwks_requests' => 10,
+
+    // The time in seconds used to cache the OIDC well-known configuration from the provider.
+    // The default value is 1 day.
+    'oidc_login_well_known_caching_time' => 86400,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
@@ -176,3 +192,14 @@ $CONFIG = array (
 **Note:**
 - If necessary, restart Nextcloud to clear the APCu cache for the config file.
 - You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
+
+#### Configuration for WebDAV access
+
+The underlying OIDC library ensures, that the `aud` property of the JWT token contains the configured Nextcloud client ID (config option `oidc_login_client_id`).
+However, when obtaining an access token for a user with a client other than the Nextcloud client (e.g. using rclone), the `aud` property does not contain Nextclouds client ID.
+Thus, the login would fail. The following steps ensure, that access tokens obtained with your client always contain your Nextcloud client in the `aud` property.
+
+1. Go to `Client Scopes`
+1. Add new client scope, call it `nextcloud`.
+1. Under `Mappers` create a new mapper of type `Audience` and ensure that `Included Client Audience` contains your Nextcloud client. Click Save.
+1. Finally, go to `Client > your-client-to-obtain-access-token > Client Scopes` and add the new `nextcloud` scope.
