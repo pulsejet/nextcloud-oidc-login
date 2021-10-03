@@ -100,7 +100,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener {
         
         $client->validateBearerToken($bearerToken);
 
-        $profile = $client->getTokenPayload($bearerToken);
+        $profile = $client->getTokenProfile($bearerToken);
 
         list($user, $userPassword) = $this->loginService->login($profile);
 
