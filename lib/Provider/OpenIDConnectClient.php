@@ -227,7 +227,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
                     return false;
                 }
 
-                json_decode(base64url_decode($parts[1]));
+                json_decode(\Jumbojett\base64url_decode($parts[1]));
                 $accessTokenIsJWT = true;
             }
             catch (\Exception $e) {
