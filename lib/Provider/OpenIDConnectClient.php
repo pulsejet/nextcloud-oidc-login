@@ -222,7 +222,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
                 $parts = explode('.', $token);
 
                 $joseHeader = json_decode(\Jumbojett\base64url_decode($parts[0]));
-                if(!property_exists($joseHeader, 'alg')) {
+                if($joseHeader == null || !property_exists($joseHeader, 'alg')) {
                     $accessTokenIsJWT = false;
                     return false;
                 }
