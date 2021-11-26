@@ -435,23 +435,23 @@ class OpenIDConnectClient
      * Connect provider that the end-user has logged out of the relying party site
      * (the client application).
      *
-     * @param string $accessToken ID token (obtained at login)
+     * @param string $idToken ID token (obtained at login)
      * @param string|null $redirect URL to which the RP is requesting that the End-User's User Agent
      * be redirected after a logout has been performed. The value MUST have been previously
      * registered with the OP. Value can be null.
      *
      * @throws OpenIDConnectClientException
      */
-    public function signOut($accessToken, $redirect) {
+    public function signOut($idToken, $redirect) {
         $signout_endpoint = $this->getProviderConfigValue('end_session_endpoint');
 
         $signout_params = null;
         if($redirect === null){
-            $signout_params = array('id_token_hint' => $accessToken);
+            $signout_params = array('id_token_hint' => $idToken);
         }
         else {
             $signout_params = array(
-                'id_token_hint' => $accessToken,
+                'id_token_hint' => $idToken,
                 'post_logout_redirect_uri' => $redirect);
         }
 
@@ -1026,7 +1026,7 @@ class OpenIDConnectClient
         }
         return (($this->issuerValidator->__invoke($claims->iss))
             && (($claims->aud === $this->clientID) || in_array($this->clientID, $claims->aud, true))
-            && ($claims->nonce === $this->getNonce())
+            && (!isset($claims->nonce) || $claims->nonce === $this->getNonce())
             && ( !isset($claims->exp) || ((gettype($claims->exp) === 'integer') && ($claims->exp >= time() - $this->leeway)))
             && ( !isset($claims->nbf) || ((gettype($claims->nbf) === 'integer') && ($claims->nbf <= time() + $this->leeway)))
             && ( !isset($claims->at_hash) || !isset($accessToken) || $claims->at_hash === $expected_at_hash )
