@@ -34,6 +34,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     /** @var int */
     private $wellKnownCachingTime;
 
+    /** var bool */
+    private $accessTokenIsJWT;
+
     public function __construct(
         ISession $session,
         IConfig $config,
@@ -181,10 +184,16 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     public function validateBearerToken($token) {
-        $claims = $this->decodeJWT($token, 1);
+        if ($this->isJWT($token)) {
+            $claims = $this->decodeJWT($token, 1);
+        }
+        else {
+            $claims = $this->introspectToken($token);
+        }
+
         // There is no nonce when validating bearer token
         $claims->nonce = $this->getNonce();
-        if(!$this->verifyJWTsignature($token)) {
+        if($this->isJWT($token) && !$this->verifyJWTsignature($token)) {
             throw new \Jumbojett\OpenIDConnectClientException('Unable to verify signature');
         }
         if(!$this->verifyJWTclaims($claims)) {
@@ -192,8 +201,45 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
     }
 
-    public function getTokenPayload($token) {
-        return $this->decodeJWT($token, 1);
+    public function getTokenProfile($token) {
+        if ($this->isJWT($token)) {
+            return $this->decodeJWT($token, 1);
+        }
+        else {
+            $this->accessToken = $token;
+            return $this->requestUserInfo();
+        }
+    }
+
+    public function isJWT($token) {
+        if (!isset($accessTokenIsJWT)) {
+            try{
+                if(substr_count($token, '.') < 2) {
+                    $accessTokenIsJWT = false;
+                    return false;
+                }
+
+                $parts = explode('.', $token);
+
+                $joseHeader = json_decode(\Jumbojett\base64url_decode($parts[0]));
+                if($joseHeader == null || !property_exists($joseHeader, 'alg')) {
+                    $accessTokenIsJWT = false;
+                    return false;
+                }
+
+                if(json_decode(\Jumbojett\base64url_decode($parts[1])) == null) {
+                    $accessTokenIsJWT = false;
+                    return false;
+                }
+
+                $accessTokenIsJWT = true;
+            }
+            catch (\Exception $e) {
+                $accessTokenIsJWT = false;
+            }
+        }
+
+        return $accessTokenIsJWT;
     }
 
     /**
