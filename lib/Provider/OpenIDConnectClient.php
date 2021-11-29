@@ -29,6 +29,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     /** @var int */
     private $minTimeBetweenJwksRequests;
 
+    private const WELL_KNOWN_CONFIGURATION = "/.well-known/openid-configuration";
     // .well-known/openid-configuration shouldn't change much, so we default to 1 day.
     private const DEFAULT_WELL_KNOWN_CACHING_TIME = 86400;
     /** @var int */
@@ -94,7 +95,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     * {@inheritdoc}
     */
     protected function fetchURL($url, $post_body = null, $headers = array()) {
-        if(strpos($url, "/.well-known/openid-configuration") !== false) {
+        // this must be an exact match as for IdentityServer the JWKS uri is a path below .well-knowm
+        if(substr_compare($url, self::WELL_KNOWN_CONFIGURATION, -strlen(self::WELL_KNOWN_CONFIGURATION)) === 0) {
             // Cache .well-known
             return $this->getWellKnown($url);
         }
