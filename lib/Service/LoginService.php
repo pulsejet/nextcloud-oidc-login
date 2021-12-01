@@ -387,6 +387,10 @@ class LoginService
             'password' => $userPassword,
             'token' => empty($userPassword) ? $token : null,
         ], false);
+
+        // Update the user's last login timestamp, since the conditions above tend to cause the
+        // completeLogin() call above to skip doing so.
+        $user->updateLastLoginTimestamp();
     }
 
     private function flatten($array, $prefix = '')
