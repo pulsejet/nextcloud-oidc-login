@@ -149,6 +149,10 @@ $CONFIG = array (
     // Enable use of WebDAV via OIDC bearer token.
     'oidc_login_webdav_enabled' => false,
 
+    // Enable authentication with user/password for DAV clients that do not
+    // support token authentication (e.g. DAVx⁵)
+    'oidc_login_password_authentication' => false,
+
     // The time in seconds used to cache public keys from provider.
     // The default value is 1 day.
     'oidc_login_public_key_caching_time' => 86400,
