@@ -3,18 +3,16 @@
 namespace OCA\OIDCLogin\WebDAV;
 
 use OCA\OIDCLogin\Service\LoginService;
-
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\IConfig;
+use OCP\ILogger;
 use OCP\ISession;
 use OCP\IUserSession;
-use OCP\ILogger;
-use OCP\IConfig;
-
-use OCP\EventDispatcher\IEventListener;
-use OCP\EventDispatcher\Event;
-
 use Sabre\DAV\Auth\Backend\AbstractBasic;
 
-class BasicAuthBackend extends AbstractBasic implements IEventListener {
+class BasicAuthBackend extends AbstractBasic implements IEventListener
+{
     /** @var string */
     private $appName;
     /** @var IUserSession */
@@ -29,8 +27,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
     private $loginService;
 
     /**
-     * @param IUserSession $userSession
-     * @param ISession $session
      * @param string $principalPrefix
      */
     public function __construct(
@@ -40,8 +36,8 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
         IConfig $config,
         ILogger $logger,
         LoginService $loginService,
-        $principalPrefix = 'principals/users/')
-    {
+        $principalPrefix = 'principals/users/'
+    ) {
         $this->appName = $appName;
         $this->userSession = $userSession;
         $this->session = $session;
@@ -49,23 +45,18 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
         $this->logger = $logger;
         $this->loginService = $loginService;
         $this->principalPrefix = $principalPrefix;
-        $this->context = ["app" => $appName];
+        $this->context = ['app' => $appName];
 
         // setup realm
         $defaults = new \OCP\Defaults();
         $this->realm = $defaults->getName();
     }
 
-    private function setupUserFs($userId) {
-        \OC_Util::setupFS($userId);
-        $this->session->close();
-        return $this->principalPrefix . $userId;
-    }
-
     /**
      * {@inheritdoc}
      */
-    function validateUserPass($username, $password) {
+    public function validateUserPass($username, $password)
+    {
         \OC_Util::setupFS(); //login hooks may need early access to the filesystem
 
         if (!$this->userSession->isLoggedIn()) {
@@ -73,6 +64,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
                 $this->login($username, $password);
             } catch (\Exception $e) {
                 $this->logger->debug("WebDAV basic token validation failed with: {$e->getMessage()}", $this->context);
+
                 return false;
             }
         }
@@ -85,11 +77,35 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
     }
 
     /**
+     * Implements IEventListener::handle.
+     * Registers this class as an authentication backend with Sabre WebDav.
+     */
+    public function handle(Event $event): void
+    {
+        $plugin = $event->getServer()->getPlugin('auth');
+        $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
+        $password_auth_enabled = $this->config->getSystemValue('oidc_login_password_authentication', false);
+
+        if (null !== $plugin && $webdav_enabled && $password_auth_enabled) {
+            $plugin->addBackend($this);
+        }
+    }
+
+    private function setupUserFs($userId)
+    {
+        \OC_Util::setupFS($userId);
+        $this->session->close();
+
+        return $this->principalPrefix.$userId;
+    }
+
+    /**
      * {@inheritdoc}
      */
-    private function login(string $username, string $password) {
+    private function login(string $username, string $password)
+    {
         $client = $this->loginService->createOIDCClient();
-        if(is_null($client)) {
+        if (null === $client) {
             throw new \Exception("Couldn't create OIDC client!");
         }
 
@@ -106,21 +122,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener {
 
         $this->userSession->completeLogin($user, [
             'loginName' => $user->getUID(),
-            'password' => $userPassword
+            'password' => $userPassword,
         ]);
-    }
-
-    /**
-     * Implements IEventListener::handle.
-     * Registers this class as an authentication backend with Sabre WebDav.
-     */
-    public function handle(Event $event): void {
-        $plugin = $event->getServer()->getPlugin('auth');
-        $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
-        $password_auth_enabled = $this->config->getSystemValue('oidc_login_password_authentication', false);
-
-        if($plugin != null && $webdav_enabled && $password_auth_enabled) {
-            $plugin->addBackend($this);
-        }
     }
 }
