@@ -2,21 +2,19 @@
 
 namespace OCA\OIDCLogin\Controller;
 
+use OC\Authentication\Token\DefaultTokenProvider;
+use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IConfig;
+use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IRequest;
-use OCP\IConfig;
-use OCP\IUserSession;
-use OCP\IUserManager;
-use OCP\IURLGenerator;
-use OCP\IGroupManager;
 use OCP\ISession;
-use OCP\AppFramework\Utility\ITimeFactory;
-use OC\User\LoginException;
-use OC\Authentication\Token\DefaultTokenProvider;
-use OCA\OIDCLogin\Provider\OpenIDConnectClient;
-use OCA\OIDCLogin\Service\LoginService;
+use OCP\IURLGenerator;
+use OCP\IUserManager;
+use OCP\IUserSession;
 
 class LoginController extends Controller
 {
@@ -38,7 +36,6 @@ class LoginController extends Controller
     private $l;
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
-
 
     public function __construct(
         $appName,
@@ -81,7 +78,7 @@ class LoginController extends Controller
             // Authenticate
             $oidc->authenticate();
 
-            $user = NULL;
+            $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
                 // Get user information from ID Token
                 $user = $oidc->getIdTokenPayload();
@@ -94,12 +91,12 @@ class LoginController extends Controller
 
             // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true));
-
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
             if ($this->config->getSystemValue('oidc_login_redir_fallback', false)) {
-                $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1';
-                header('Location: ' . $noRedirLoginUrl);
+                $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1';
+                header('Location: '.$noRedirLoginUrl);
+
                 exit();
             }
 
@@ -120,8 +117,7 @@ class LoginController extends Controller
     private function prepareLogout($oidc)
     {
         if ($oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false)) {
-            if ($this->config->getSystemValue('oidc_login_end_session_redirect', false))
-            {
+            if ($this->config->getSystemValue('oidc_login_end_session_redirect', false)) {
                 $signout_url = $oidc->getEndSessionUrl($oidc_login_logout_url);
                 $this->session->set('oidc_logout_url', $signout_url);
             } else {

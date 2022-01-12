@@ -5,30 +5,29 @@ declare(strict_types=1);
 namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
+use OCA\OIDCLogin\OIDCLoginOption;
 use OCP\AppFramework\App;
-use OCP\IURLGenerator;
-use OCP\IConfig;
-use OCP\IUserSession;
-use OCP\IRequest;
-use OCP\ISession;
-use OCP\IL10N;
-use OCP\Util;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCA\OIDCLogin\OIDCLoginOption;
+use OCP\IConfig;
+use OCP\IL10N;
+use OCP\IRequest;
+use OCP\ISession;
+use OCP\IURLGenerator;
+use OCP\IUserSession;
+use OCP\Util;
 
 class Application extends App implements IBootstrap
 {
+    /** @var IURLGenerator */
+    protected $url;
+    /** @var IL10N */
+    protected $l;
+    /** @var Config */
+    protected $config;
     private $appName = 'oidc_login';
-
-	/** @var IURLGenerator */
-	protected $url;
-	/** @var IL10N */
-	protected $l;
-	/** @var Config */
-	protected $config;
 
     public function __construct()
     {
@@ -40,12 +39,15 @@ class Application extends App implements IBootstrap
         $context->registerAlternativeLogin(OIDCLoginOption::class);
 
         // Try to get Files_External storage service
-        $context->registerService('storagesService', function($container) {
+        $context->registerService('storagesService', function ($container) {
             $storagesService = null;
+
             try {
                 $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
                     $container->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
+
             return $storagesService;
         });
 
@@ -75,7 +77,7 @@ class Application extends App implements IBootstrap
         $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
 
         // URL for login without redirecting forcefully, false if we are not doing that
-        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
+        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1' : false;
 
         // Get logged in user's session
         $userSession = $container->query(IUserSession::class);
@@ -100,7 +102,8 @@ class Application extends App implements IBootstrap
                         return;
                     }
 
-                    header('Location: ' . $logoutUrl);
+                    header('Location: '.$logoutUrl);
+
                     exit();
                 });
             }
@@ -114,15 +117,15 @@ class Application extends App implements IBootstrap
         }
 
         // Redirect automatically or show alt login page
-        if (array_key_exists('REQUEST_METHOD', $_SERVER) &&
-            $_SERVER['REQUEST_METHOD'] === 'GET' &&
-            $request->getPathInfo() === '/login' &&
-            $request->getParam('noredir') == null &&
-            $request->getParam('user') == null
+        if (\array_key_exists('REQUEST_METHOD', $_SERVER)
+            && 'GET' === $_SERVER['REQUEST_METHOD']
+            && '/login' === $request->getPathInfo()
+            && null === $request->getParam('noredir')
+            && null === $request->getParam('user')
         ) {
             // Set redirection URL
             $redir = $request->getParam('redirect_url');
-            if ($redir != null && !empty($redir)) {
+            if (null !== $redir && !empty($redir)) {
                 $session->set('oidc_redir', $redir);
             } else {
                 $session->set('oidc_redir', '/');
@@ -133,7 +136,8 @@ class Application extends App implements IBootstrap
 
             // Force redirect
             if ($useLoginRedirect) {
-                header('Location: ' . $loginLink);
+                header('Location: '.$loginLink);
+
                 exit();
             }
 
@@ -141,9 +145,11 @@ class Application extends App implements IBootstrap
             if ($altLoginPage) {
                 $OIDC_LOGIN_URL = $loginLink;
                 header_remove('content-security-policy');
+
                 require $altLoginPage;
+
                 exit();
             }
         }
-	}
+    }
 }

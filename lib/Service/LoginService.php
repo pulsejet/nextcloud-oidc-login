@@ -2,13 +2,13 @@
 
 namespace OCA\OIDCLogin\Service;
 
-use OCP\IL10N;
-use OCP\IConfig;
-use OCP\IUserManager;
-use OCP\IGroupManager;
-use OCP\ISession;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCP\IConfig;
+use OCP\IGroupManager;
+use OCP\IL10N;
+use OCP\ISession;
+use OCP\IUserManager;
 
 class LoginService
 {
@@ -26,7 +26,6 @@ class LoginService
     private $l;
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
-
 
     public function __construct(
         $appName,
@@ -46,7 +45,8 @@ class LoginService
         $this->storagesService = $storagesService;
     }
 
-    public function createOIDCClient($callbackUrl = '') {
+    public function createOIDCClient($callbackUrl = '')
+    {
         $oidc = new OpenIDConnectClient(
             $this->session,
             $this->config,
@@ -61,14 +61,15 @@ class LoginService
         // Set OpenID Connect Scope
         $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
         $oidc->addScope($scope);
+
         return $oidc;
     }
 
     public function login($profile)
     {
         // Get attributes
-        $confattr = $this->config->getSystemValue('oidc_login_attributes', array());
-        $defattr = array(
+        $confattr = $this->config->getSystemValue('oidc_login_attributes', []);
+        $defattr = [
             'id' => 'sub',
             'name' => 'name',
             'mail' => 'email',
@@ -76,7 +77,7 @@ class LoginService
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
             'groups' => 'ownCloudGroups',
-        );
+        ];
         $attr = array_merge($defattr, $confattr);
 
         // Flatten the profile array
@@ -94,15 +95,15 @@ class LoginService
             }
 
             // Get the LDAP user backend
-            $ldap = NULL;
+            $ldap = null;
             foreach ($this->userManager->getBackends() as $backend) {
-                if ($backend->getBackendName() == $this->config->getSystemValue('oidc_login_ldap_backend', "LDAP")) {
+                if ($backend->getBackendName() === $this->config->getSystemValue('oidc_login_ldap_backend', 'LDAP')) {
                     $ldap = $backend;
                 }
             }
 
             // Check if backend found
-            if ($ldap == NULL) {
+            if (null === $ldap) {
                 throw new LoginException($this->l->t('No LDAP user backend found!'));
             }
 
@@ -118,7 +119,7 @@ class LoginService
 
             // Store the user
             $ldapUser = $access->userManager->get($dn);
-            if ($ldapUser == NULL) {
+            if (null === $ldapUser) {
                 throw new LoginException($this->l->t('Error getting user from LDAP'));
             }
 
@@ -143,7 +144,7 @@ class LoginService
         }
 
         // Check max length of uid
-        if (strlen($uid) > 64) {
+        if (\strlen($uid) > 64) {
             $uid = md5($uid);
         }
 
@@ -165,43 +166,42 @@ class LoginService
         $datadir = $this->config->getSystemValue('datadirectory');
 
         // Set home directory unless proxying for LDAP
-        if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false) && 
-            array_key_exists($attr['home'], $profile)) {
-
+        if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)
+            && \array_key_exists($attr['home'], $profile)) {
             // Get intended home directory
             $home = $profile[$attr['home']];
 
-            if($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
+            if ($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
                 // Check if the files external app is enabled and injected
-                if ($this->storagesService === null) {
+                if (null === $this->storagesService) {
                     throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
                 }
 
                 // Check if the user already has matching storage on their root
                 $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
-                    return in_array($uid, $storage->getApplicableUsers()) && // User must own the storage
-                        $storage->getMountPoint() == "/" && // It must be mounted as root
-                        $storage->getBackend()->getIdentifier() == 'local' && // It must be type local
-                        count($storage->getApplicableUsers() == 1); // It can't be shared with other users
+                    return \in_array($uid, $storage->getApplicableUsers(), true) // User must own the storage
+                        && '/' === $storage->getMountPoint() // It must be mounted as root
+                        && 'local' === $storage->getBackend()->getIdentifier() // It must be type local
+                        && \count(1 === $storage->getApplicableUsers()); // It can't be shared with other users
                 });
 
-                if(!empty($storages)) {
+                if (!empty($storages)) {
                     // User had storage on their / so make sure it's the correct folder
                     $storage = array_values($storages)[0];
                     $options = $storage->getBackendOptions();
 
-                    if($options['datadir'] != $home) {
+                    if ($options['datadir'] !== $home) {
                         $options['datadir'] = $home;
                         $storage->setBackendOptions($options);
                         $this->storagesService->updateStorage($storage);
                     }
                 } else {
                     // User didnt have any matching storage on their root, so make one
-                    $storage = $this->storagesService->createStorage('/', 'local', 'null::null', array(
-                        'datadir' => $home
-                    ), array(
-                        'enable_sharing' => true
-                    ));
+                    $storage = $this->storagesService->createStorage('/', 'local', 'null::null', [
+                        'datadir' => $home,
+                    ], [
+                        'enable_sharing' => true,
+                    ]);
                     $storage->setApplicableUsers([$uid]);
                     $this->storagesService->addStorage($storage);
                 }
@@ -210,18 +210,18 @@ class LoginService
                 mkdir($home, 0777, true);
 
                 // Home directory (intended) of the user
-                $nhome = "$datadir/$uid";
+                $nhome = "{$datadir}/{$uid}";
 
                 // Check if correct link or home directory exists
                 if (!file_exists($nhome) || is_link($nhome)) {
                     // Unlink if invalid link
-                    if (is_link($nhome) && readlink($nhome) != $home) {
+                    if (is_link($nhome) && readlink($nhome) !== $home) {
                         unlink($nhome);
                     }
 
                     // Create symlink to directory
                     if (!is_link($nhome) && !symlink($home, $nhome)) {
-                        throw new LoginException("Failed to create symlink to home directory");
+                        throw new LoginException('Failed to create symlink to home directory');
                     }
                 }
             }
@@ -229,54 +229,54 @@ class LoginService
 
         // Update user profile
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            if ($attr['name'] !== null) {
+            if (null !== $attr['name']) {
                 $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
             }
 
-            if ($attr['mail'] !== null) {
-                $user->setEMailAddress((string)$profile[$attr['mail']]);
+            if (null !== $attr['mail']) {
+                $user->setEMailAddress((string) $profile[$attr['mail']]);
             }
 
             // Set optional params
-            if (array_key_exists($attr['quota'], $profile)) {
+            if (\array_key_exists($attr['quota'], $profile)) {
                 $user->setQuota((string) $profile[$attr['quota']]);
             } else {
                 if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
                     $user->setQuota((string) $defaultQuota);
-                };
+                }
             }
 
             // Groups to add user in
             $groupNames = [];
 
             // Add administrator group from attribute
-            $manageAdmin = array_key_exists('is_admin', $attr) && $attr['is_admin'];
+            $manageAdmin = \array_key_exists('is_admin', $attr) && $attr['is_admin'];
             if ($manageAdmin) {
                 $adminAttr = $attr['is_admin'];
-                if (array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
-                    array_push($groupNames, 'admin');
+                if (\array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
+                    $groupNames[] = 'admin';
                 }
             }
 
             // Add default group if present
             if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
-                array_push($groupNames, $defaultGroup);
+                $groupNames[] = $defaultGroup;
             }
 
             // Add user's groups from profile
-            $hasProfileGroups = array_key_exists($attr['groups'], $profile);
+            $hasProfileGroups = \array_key_exists($attr['groups'], $profile);
             if ($hasProfileGroups) {
                 // Get group names
                 $profileGroups = $profile[$attr['groups']];
 
                 // Explode by space if string
-                if (is_string($profileGroups)) {
+                if (\is_string($profileGroups)) {
                     $profileGroups = array_filter(explode(' ', $profileGroups));
                 }
 
                 // Make sure group names is an array
-                if (!is_array($profileGroups)) {
-                    throw new LoginException($attr['groups'] . ' must be an array');
+                if (!\is_array($profileGroups)) {
+                    throw new LoginException($attr['groups'].' must be an array');
                 }
 
                 // Add to all groups
@@ -289,14 +289,14 @@ class LoginService
             // Remove user from groups not present
             $currentUserGroups = $this->groupManager->getUserGroups($user);
             foreach ($currentUserGroups as $currentUserGroup) {
-                if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames)) !== false) {
+                if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames, true)) !== false) {
                     // User is already in group - don't process further
                     unset($groupNames[$key]);
                 } else {
                     // User is not supposed to be in this group
                     // Remove the user ONLY if we're using profile groups
                     // or the group is the `admin` group and we manage admin role
-                    if ($hasProfileGroups || ($manageAdmin && $currentUserGroup->getDisplayName() === 'admin')) {
+                    if ($hasProfileGroups || ($manageAdmin && 'admin' === $currentUserGroup->getDisplayName())) {
                         $currentUserGroup->removeUser($user);
                     }
                 }
@@ -318,20 +318,23 @@ class LoginService
                 }
             }
         }
-        return array($user, $userPassword);
+
+        return [$user, $userPassword];
     }
 
-    private function flatten($array, $prefix = '') {
-        $result = array();
-        foreach($array as $key => $value) {
-            $result[$prefix . $key] = $value;
-            if (is_array($value)) {
-                $result = $result + $this->flatten($value, $prefix . $key . '_');
+    private function flatten($array, $prefix = '')
+    {
+        $result = [];
+        foreach ($array as $key => $value) {
+            $result[$prefix.$key] = $value;
+            if (\is_array($value)) {
+                $result = $result + $this->flatten($value, $prefix.$key.'_');
             }
-            if (is_int($key) && is_string($value)) {
-                $result[$prefix . $value] = $value;
+            if (\is_int($key) && \is_string($value)) {
+                $result[$prefix.$value] = $value;
             }
         }
+
         return $result;
     }
 }

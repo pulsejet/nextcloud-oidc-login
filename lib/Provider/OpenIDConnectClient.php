@@ -2,36 +2,35 @@
 
 namespace OCA\OIDCLogin\Provider;
 
-require_once __DIR__ . '/../../3rdparty/autoload.php';
+require_once __DIR__.'/../../3rdparty/autoload.php';
 
-use OCP\ISession;
 use OCP\IConfig;
+use OCP\ISession;
 
 class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 {
+    // Keycloak uses a default of 86400 seconds (1 day) as caching time for public keys
+    // https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
+    private const DEFAULT_PUBLIC_KEY_CACHING_TIME = 86400;
+
+    // Avoid DoSing provider by issuing too many requests triggered by an attacker with bad kids
+    // Keycloak uses a default of 10 seconds as a minimum time between JWKS requests
+    // https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
+    private const DEFAULT_MIN_TIME_BETWEEN_JWKS_REQUESTS = 10;
+
+    private const WELL_KNOWN_CONFIGURATION = '/.well-known/openid-configuration';
+    // .well-known/openid-configuration shouldn't change much, so we default to 1 day.
+    private const DEFAULT_WELL_KNOWN_CACHING_TIME = 86400;
     /** @var ISession */
     private $session;
     /** @var IConfig */
     private $config;
     /** @var string */
     private $appName;
-
-    // Keycloak uses a default of 86400 seconds (1 day) as caching time for public keys
-    // https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
-    private const DEFAULT_PUBLIC_KEY_CACHING_TIME = 86400;
     /** @var int */
     private $publicKeyCachingTime;
-
-    // Avoid DoSing provider by issuing too many requests triggered by an attacker with bad kids
-    // Keycloak uses a default of 10 seconds as a minimum time between JWKS requests
-    // https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
-    private const DEFAULT_MIN_TIME_BETWEEN_JWKS_REQUESTS = 10;
     /** @var int */
     private $minTimeBetweenJwksRequests;
-
-    private const WELL_KNOWN_CONFIGURATION = "/.well-known/openid-configuration";
-    // .well-known/openid-configuration shouldn't change much, so we default to 1 day.
-    private const DEFAULT_WELL_KNOWN_CACHING_TIME = 86400;
     /** @var int */
     private $wellKnownCachingTime;
 
@@ -42,8 +41,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         ISession $session,
         IConfig $config,
         string $appName,
-        $issuer = null)
-    {
+        $issuer = null
+    ) {
         $this->config = $config;
         parent::__construct(
             $this->config->getSystemValue('oidc_login_provider_url'),
@@ -57,69 +56,22 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         $this->minTimeBetweenJwksRequests = $this->config->getSystemValue('oidc_login_min_time_between_jwks_requests', self::DEFAULT_MIN_TIME_BETWEEN_JWKS_REQUESTS);
         $this->wellKnownCachingTime = $this->config->getSystemValue('oidc_login_well_known_caching_time', self::DEFAULT_WELL_KNOWN_CACHING_TIME);
     }
-    /**
-    * {@inheritdoc}
-    */
-    protected function getSessionKey($key)
-    {
-        return $this->session->get($key);
-    }
-    /**
-    * {@inheritdoc}
-    */
-    protected function setSessionKey($key, $value)
-    {
-        $this->session->set($key, $value);
-    }
-    /**
-    * {@inheritdoc}
-    */
-    protected function unsetSessionKey($key)
-    {
-        $this->session->remove($key);
-    }
-    /**
-    * {@inheritdoc}
-    */
-    protected function startSession() {
-        $this->session->set('is_oidc', 1);
-    }
-    /**
-    * {@inheritdoc}
-    */
-    protected function commitSession() {
-        $this->startSession();
-    }
-
-    /**
-    * {@inheritdoc}
-    */
-    protected function fetchURL($url, $post_body = null, $headers = array()) {
-        // this must be an exact match as for IdentityServer the JWKS uri is a path below .well-knowm
-        if(substr_compare($url, self::WELL_KNOWN_CONFIGURATION, -strlen(self::WELL_KNOWN_CONFIGURATION)) === 0) {
-            // Cache .well-known
-            return $this->getWellKnown($url);
-        }
-        if($url === $this->getProviderConfigValue("jwks_uri")) {
-            // Cache jwks
-            return $this->getJWKs();
-        }
-        return parent::fetchURL($url, $post_body, $headers);
-    }
 
     /**
      * {@inheritdoc}
      */
-    public function verifyJWTsignature($jwt) {
+    public function verifyJWTsignature($jwt)
+    {
         try {
             return parent::verifyJWTsignature($jwt);
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             // As we are caching the JWKs, we might not know the newest ones.
             // Thus we try verifying the signature first, but if that didn't work because the
             // key couldn't be found, we fetch new ones and try again.
             \OC::$server->getLogger()->debug("Error when verifying jwt {$e->getMessage()}");
-            if(strpos($e->getMessage(), "Unable to find a key") !== false) {
+            if (false !== strpos($e->getMessage(), 'Unable to find a key')) {
                 $this->getJWKs(true);
+
                 return parent::verifyJWTsignature($jwt);
             }
             // Otherwise, rethrow error
@@ -128,15 +80,172 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     }
 
     /**
+     * Validates the given bearer token by checking the validity of the tokens signature and claims.
+     *
+     * @param mixed $token
+     *
+     * @throws \Jumbojett\OpenIDConnectClientException
+     */
+    public function validateBearerToken($token)
+    {
+        if ($this->isJWT($token)) {
+            $claims = $this->decodeJWT($token, 1);
+        } else {
+            $claims = $this->introspectToken($token);
+        }
+
+        // There is no nonce when validating bearer token
+        $claims->nonce = $this->getNonce();
+        if ($this->isJWT($token) && !$this->verifyJWTsignature($token)) {
+            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify signature');
+        }
+        if (!$this->verifyJWTclaims($claims)) {
+            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify claims');
+        }
+    }
+
+    public function getTokenProfile($token)
+    {
+        if ($this->isJWT($token)) {
+            return $this->decodeJWT($token, 1);
+        }
+
+        $this->accessToken = $token;
+
+        return $this->requestUserInfo();
+    }
+
+    public function isJWT($token)
+    {
+        if (!isset($accessTokenIsJWT)) {
+            try {
+                if (substr_count($token, '.') < 2) {
+                    $accessTokenIsJWT = false;
+
+                    return false;
+                }
+
+                $parts = explode('.', $token);
+
+                $joseHeader = json_decode(\Jumbojett\base64url_decode($parts[0]));
+                if (null === $joseHeader || !property_exists($joseHeader, 'alg')) {
+                    $accessTokenIsJWT = false;
+
+                    return false;
+                }
+
+                if (null === json_decode(\Jumbojett\base64url_decode($parts[1]))) {
+                    $accessTokenIsJWT = false;
+
+                    return false;
+                }
+
+                $accessTokenIsJWT = true;
+            } catch (\Exception $e) {
+                $accessTokenIsJWT = false;
+            }
+        }
+
+        return $accessTokenIsJWT;
+    }
+
+    /**
+     * Gets the OIDC end session URL that will logout the user and redirect back to $post_logout_redirect_uri.
+     *
+     * @param string $post_logout_redirect_uri post signout redirect URL
+     *
+     * @return string the OIDC logout URL
+     */
+    public function getEndSessionUrl($post_logout_redirect_uri)
+    {
+        $id_token_hint = $this->getIdToken();
+        $end_session_endpoint = null;
+
+        try {
+            $end_session_endpoint = $this->getProviderConfigValue('end_session_endpoint');
+        } catch (\Exception $e) {
+            throw new \Exception("end_session_endpoint could not be fetched.\n".
+                                 "Your OIDC provider probably does not support logout.\n".
+                                 'Set "oidc_login_end_session_redirect" => false in Nextcloud config.');
+        }
+
+        $signout_params = [
+            'id_token_hint' => $id_token_hint,
+            'post_logout_redirect_uri' => $post_logout_redirect_uri, ];
+        $end_session_endpoint .= (false === strpos($end_session_endpoint, '?') ? '?' : '&').http_build_query($signout_params);
+
+        return $end_session_endpoint;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getSessionKey($key)
+    {
+        return $this->session->get($key);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function setSessionKey($key, $value)
+    {
+        $this->session->set($key, $value);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function unsetSessionKey($key)
+    {
+        $this->session->remove($key);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function startSession()
+    {
+        $this->session->set('is_oidc', 1);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function commitSession()
+    {
+        $this->startSession();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function fetchURL($url, $post_body = null, $headers = [])
+    {
+        // this must be an exact match as for IdentityServer the JWKS uri is a path below .well-knowm
+        if (0 === substr_compare($url, self::WELL_KNOWN_CONFIGURATION, -\strlen(self::WELL_KNOWN_CONFIGURATION))) {
+            // Cache .well-known
+            return $this->getWellKnown($url);
+        }
+        if ($url === $this->getProviderConfigValue('jwks_uri')) {
+            // Cache jwks
+            return $this->getJWKs();
+        }
+
+        return parent::fetchURL($url, $post_body, $headers);
+    }
+
+    /**
      * Fetches the well-known OIDC discovery endpoint and caches the result
      * for the configured amount of time. This reduces the requests required
      * to the provider. The openid-configuration shouldn't change much anyway.
      */
-    private function getWellKnown(string $url) {
+    private function getWellKnown(string $url)
+    {
         $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_well_known', 0);
         $age = time() - $lastFetched;
 
-        if($age < $this->wellKnownCachingTime) {
+        if ($age < $this->wellKnownCachingTime) {
             return $this->config->getAppValue($this->appName, 'well-known');
         }
 
@@ -153,22 +262,26 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * This reduces the requests required to the provider and increases the response time,
      * especially when using WebDAV.
      *
+     * @param mixed $ignore_cache
+     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
-    private function getJWKs($ignore_cache = false) {
+    private function getJWKs($ignore_cache = false)
+    {
         $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_jwks', 0);
 
         $keyAge = time() - $lastFetched;
 
         // Use cache
-        if(!$ignore_cache && $keyAge < $this->publicKeyCachingTime) {
+        if (!$ignore_cache && $keyAge < $this->publicKeyCachingTime) {
             return $this->config->getAppValue($this->appName, 'jwks');
         }
 
         // Avoid DoSing the provider
-        if(time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
-            \OC::$server->getLogger()->warning("Too many update signing key requests", ["app" => $this->appName]);
-            throw new \Jumbojett\OpenIDConnectClientException("Too many update signing key requests");
+        if (time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
+            \OC::$server->getLogger()->warning('Too many update signing key requests', ['app' => $this->appName]);
+
+            throw new \Jumbojett\OpenIDConnectClientException('Too many update signing key requests');
         }
 
         // Avoid recursion
@@ -178,94 +291,5 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         $this->config->setAppValue($this->appName, 'last_updated_jwks', time());
 
         return $resp;
-    }
-
-    /**
-     * Validates the given bearer token by checking the validity of the tokens signature and claims.
-     *
-     * @throws \Jumbojett\OpenIDConnectClientException
-     */
-    public function validateBearerToken($token) {
-        if ($this->isJWT($token)) {
-            $claims = $this->decodeJWT($token, 1);
-        }
-        else {
-            $claims = $this->introspectToken($token);
-        }
-
-        // There is no nonce when validating bearer token
-        $claims->nonce = $this->getNonce();
-        if($this->isJWT($token) && !$this->verifyJWTsignature($token)) {
-            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify signature');
-        }
-        if(!$this->verifyJWTclaims($claims)) {
-            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify claims');
-        }
-    }
-
-    public function getTokenProfile($token) {
-        if ($this->isJWT($token)) {
-            return $this->decodeJWT($token, 1);
-        }
-        else {
-            $this->accessToken = $token;
-            return $this->requestUserInfo();
-        }
-    }
-
-    public function isJWT($token) {
-        if (!isset($accessTokenIsJWT)) {
-            try{
-                if(substr_count($token, '.') < 2) {
-                    $accessTokenIsJWT = false;
-                    return false;
-                }
-
-                $parts = explode('.', $token);
-
-                $joseHeader = json_decode(\Jumbojett\base64url_decode($parts[0]));
-                if($joseHeader == null || !property_exists($joseHeader, 'alg')) {
-                    $accessTokenIsJWT = false;
-                    return false;
-                }
-
-                if(json_decode(\Jumbojett\base64url_decode($parts[1])) == null) {
-                    $accessTokenIsJWT = false;
-                    return false;
-                }
-
-                $accessTokenIsJWT = true;
-            }
-            catch (\Exception $e) {
-                $accessTokenIsJWT = false;
-            }
-        }
-
-        return $accessTokenIsJWT;
-    }
-
-    /**
-     * Gets the OIDC end session URL that will logout the user and redirect back to $post_logout_redirect_uri.
-     *
-     * @param string $post_logout_redirect_uri Post signout redirect URL.
-     * @return string The OIDC logout URL.
-     */
-    public function getEndSessionUrl($post_logout_redirect_uri)
-    {
-        $id_token_hint = $this->getIdToken();
-        $end_session_endpoint = NULL;
-        try {
-            $end_session_endpoint = $this->getProviderConfigValue('end_session_endpoint');
-        } catch (\Exception $e) {
-            throw new \Exception("end_session_endpoint could not be fetched.\n".
-                                 "Your OIDC provider probably does not support logout.\n".
-                                 "Set \"oidc_login_end_session_redirect\" => false in Nextcloud config.");
-        }
-
-        $signout_params = array(
-            'id_token_hint' => $id_token_hint,
-            'post_logout_redirect_uri' => $post_logout_redirect_uri);
-        $end_session_endpoint  .= (strpos($end_session_endpoint, '?') === false ? '?' : '&') . http_build_query($signout_params);
-        return $end_session_endpoint;
     }
 }
