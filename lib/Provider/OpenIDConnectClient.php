@@ -257,6 +257,14 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
         $resp = parent::fetchURL($url);
 
+        // A successful response must use the 200 OK status code, so don't cache non-200 responses
+        // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
+        if (200 !== $this->getResponseCode()) {
+            \OC::$server->getLogger()->warning('Got non-200 response code when querying well-known', ['app' => $this->appName]);
+
+            return $resp;
+        }
+
         $this->config->setAppValue($this->appName, 'well-known', $resp);
         $this->config->setAppValue($this->appName, 'last_updated_well_known', time());
 
@@ -292,6 +300,15 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
         // Avoid recursion
         $resp = parent::fetchURL($this->getProviderConfigValue('jwks_uri'));
+
+        // Don't cache non-200 responses.
+        // As we didn't find any specification in the standard, what 200 code it should exactly be,
+        // we accept the complete range.
+        if ($this->getResponseCode() < 200 || $this->getResponseCode() >= 300) {
+            \OC::$server->getLogger()->warning('Got non-200 response code when querying JWKs', ['app' => $this->appName]);
+
+            return $resp;
+        }
 
         $this->config->setAppValue($this->appName, 'jwks', $resp);
         $this->config->setAppValue($this->appName, 'last_updated_jwks', time());
