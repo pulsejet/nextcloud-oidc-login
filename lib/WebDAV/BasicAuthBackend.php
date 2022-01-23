@@ -15,14 +15,19 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 {
     /** @var string */
     private $appName;
+
     /** @var IUserSession */
     private $userSession;
+
     /** @var ISession */
     private $session;
+
     /** @var IConfig */
     private $config;
+
     /** @var ILogger */
     private $logger;
+
     /** @var LoginService */
     private $loginService;
 
