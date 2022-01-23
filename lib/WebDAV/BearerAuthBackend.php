@@ -15,16 +15,22 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
 {
     /** @var string */
     private $appName;
+
     /** @var IUserSession */
     private $userSession;
+
     /** @var ISession */
     private $session;
+
     /** @var IConfig */
     private $config;
+
     /** @var string */
     private $principalPrefix;
+
     /** @var ILogger */
     private $logger;
+
     /** @var LoginService */
     private $loginService;
 

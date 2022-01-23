@@ -21,16 +21,22 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     private const WELL_KNOWN_CONFIGURATION = '/.well-known/openid-configuration';
     // .well-known/openid-configuration shouldn't change much, so we default to 1 day.
     private const DEFAULT_WELL_KNOWN_CACHING_TIME = 86400;
+
     /** @var ISession */
     private $session;
+
     /** @var IConfig */
     private $config;
+
     /** @var string */
     private $appName;
+
     /** @var int */
     private $publicKeyCachingTime;
+
     /** @var int */
     private $minTimeBetweenJwksRequests;
+
     /** @var int */
     private $wellKnownCachingTime;
 

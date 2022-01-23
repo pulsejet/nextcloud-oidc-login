@@ -23,8 +23,10 @@ class Application extends App implements IBootstrap
 {
     /** @var IURLGenerator */
     protected $url;
+
     /** @var IL10N */
     protected $l;
+
     /** @var Config */
     protected $config;
     private $appName = 'oidc_login';

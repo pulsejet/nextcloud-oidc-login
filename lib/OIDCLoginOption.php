@@ -12,10 +12,13 @@ class OIDCLoginOption implements IAlternativeLogin
 {
     /** @var IURLGenerator */
     protected $url;
+
     /** @var IL10N */
     protected $l;
+
     /** @var Config */
     protected $config;
+
     /** @var IRequest */
     protected $request;
 

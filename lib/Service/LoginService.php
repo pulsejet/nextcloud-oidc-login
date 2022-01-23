@@ -14,16 +14,22 @@ class LoginService
 {
     /** @var string */
     private $appName;
+
     /** @var IConfig */
     private $config;
+
     /** @var IUserManager */
     private $userManager;
+
     /** @var IGroupManager */
     private $groupManager;
+
     /** @var ISession */
     private $session;
+
     /** @var IL10N */
     private $l;
+
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
 

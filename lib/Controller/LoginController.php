@@ -20,20 +20,28 @@ class LoginController extends Controller
 {
     /** @var IConfig */
     private $config;
+
     /** @var IURLGenerator */
     private $urlGenerator;
+
     /** @var IUserManager */
     private $userManager;
+
     /** @var IUserSession */
     private $userSession;
+
     /** @var IGroupManager */
     private $groupManager;
+
     /** @var ISession */
     private $session;
+
     /** @var LoginService */
     private $loginService;
+
     /** @var IL10N */
     private $l;
+
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
 
