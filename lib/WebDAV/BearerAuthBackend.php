@@ -2,11 +2,13 @@
 
 namespace OCA\OIDCLogin\WebDAV;
 
+use OC\Authentication\Token\DefaultTokenProvider;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
 use OCP\ILogger;
+use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUserSession;
 use Sabre\DAV\Auth\Backend\AbstractBearer;
@@ -15,6 +17,9 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
 {
     /** @var string */
     private $appName;
+
+    /** @var IRequest */
+    private $request;
 
     /** @var IUserSession */
     private $userSession;
@@ -39,6 +44,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      */
     public function __construct(
         string $appName,
+        IRequest $request,
         IUserSession $userSession,
         ISession $session,
         IConfig $config,
@@ -47,6 +53,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $principalPrefix = 'principals/users/'
     ) {
         $this->appName = $appName;
+        $this->request = $request;
         $this->userSession = $userSession;
         $this->session = $session;
         $this->config = $config;
@@ -124,9 +131,16 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
 
         list($user, $userPassword) = $this->loginService->login($profile);
 
+        $this->userSession->getSession()->regenerateId();
+        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
+        $this->userSession->setTokenProvider($tokenProvider);
+        $this->userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
+        $token = $tokenProvider->getToken($this->userSession->getSession()->getId());
+
         $this->userSession->completeLogin($user, [
             'loginName' => $user->getUID(),
             'password' => $userPassword,
-        ]);
+            'token' => empty($userPassword) ? $token : null,
+        ], false);
     }
 }
