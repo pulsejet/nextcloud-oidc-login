@@ -127,6 +127,18 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 
         $token = $client->requestResourceOwnerToken(true);
 
+        if (null === $token) {
+            throw new \Exception("Couldn't get a resource owner token");
+        }
+
+        if (isset($token->error)) {
+            if (isset($token->error_description)) {
+                throw new \Exception("Resource owner token error: {$token->error} {$token->error_description}");
+            }
+
+            throw new \Exception("Resource owner token error: {$token->error}");
+        }
+
         $profile = $client->getTokenProfile($token->access_token);
 
         $this->loginService->login($profile, $this->userSession, $this->request);
