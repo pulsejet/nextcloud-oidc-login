@@ -129,6 +129,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 
         $profile = $client->getTokenProfile($token->access_token);
 
-        $this->loginService->login($profile);
+        $this->loginService->login($profile, $this->userSession, $this->request);
     }
 }
