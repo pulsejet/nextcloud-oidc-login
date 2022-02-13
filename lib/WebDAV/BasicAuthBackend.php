@@ -7,6 +7,7 @@ use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
 use OCP\ILogger;
+use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUserSession;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
@@ -15,6 +16,9 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 {
     /** @var string */
     private $appName;
+
+    /** @var IRequest */
+    private $request;
 
     /** @var IUserSession */
     private $userSession;
@@ -36,6 +40,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
      */
     public function __construct(
         string $appName,
+        IRequest $request,
         IUserSession $userSession,
         ISession $session,
         IConfig $config,
@@ -44,6 +49,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         $principalPrefix = 'principals/users/'
     ) {
         $this->appName = $appName;
+        $this->request = $request;
         $this->userSession = $userSession;
         $this->session = $session;
         $this->config = $config;
@@ -123,11 +129,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 
         $profile = $client->getTokenProfile($token->access_token);
 
-        list($user, $userPassword) = $this->loginService->login($profile);
-
-        $this->userSession->completeLogin($user, [
-            'loginName' => $user->getUID(),
-            'password' => $userPassword,
-        ]);
+        $this->loginService->login($profile, $this->userSession, $this->request);
     }
 }
