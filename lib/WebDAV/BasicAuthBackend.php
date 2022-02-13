@@ -2,7 +2,6 @@
 
 namespace OCA\OIDCLogin\WebDAV;
 
-use OC\Authentication\Token\DefaultTokenProvider;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -130,18 +129,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 
         $profile = $client->getTokenProfile($token->access_token);
 
-        list($user, $userPassword) = $this->loginService->login($profile);
-
-        $this->userSession->getSession()->regenerateId();
-        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
-        $this->userSession->setTokenProvider($tokenProvider);
-        $this->userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
-        $token = $tokenProvider->getToken($this->userSession->getSession()->getId());
-
-        $this->userSession->completeLogin($user, [
-            'loginName' => $user->getUID(),
-            'password' => $userPassword,
-            'token' => empty($userPassword) ? $token : null,
-        ], false);
+        $this->loginService->login($profile);
     }
 }

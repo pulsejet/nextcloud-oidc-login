@@ -2,7 +2,6 @@
 
 namespace OCA\OIDCLogin\Controller;
 
-use OC\Authentication\Token\DefaultTokenProvider;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -143,20 +142,7 @@ class LoginController extends Controller
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
-        list($user, $userPassword) = $this->loginService->login($profile);
-
-        // Complete login
-        $this->userSession->getSession()->regenerateId();
-        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
-        $this->userSession->setTokenProvider($tokenProvider);
-        $this->userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
-        $token = $tokenProvider->getToken($this->userSession->getSession()->getId());
-
-        $this->userSession->completeLogin($user, [
-            'loginName' => $user->getUID(),
-            'password' => $userPassword,
-            'token' => empty($userPassword) ? $token : null,
-        ], false);
+        list($user, $userPassword) = $this->loginService->login($profile, $this->userSession, $this->request);
 
         //Workaround to create user files folder. Remove it later.
         \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());

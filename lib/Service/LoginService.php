@@ -2,6 +2,7 @@
 
 namespace OCA\OIDCLogin\Service;
 
+use OC\Authentication\Token\DefaultTokenProvider;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCP\IConfig;
@@ -71,7 +72,7 @@ class LoginService
         return $oidc;
     }
 
-    public function login($profile)
+    public function login($profile, $userSession, $request)
     {
         // Get attributes
         $confattr = $this->config->getSystemValue('oidc_login_attributes', []);
@@ -325,7 +326,24 @@ class LoginService
             }
         }
 
+        $this->completeLogin($user, $userPassword, $userSession, $request);
+
         return [$user, $userPassword];
+    }
+
+    public function completeLogin($user, $userPassword, $userSession, $request)
+    {
+        $userSession->getSession()->regenerateId();
+        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
+        $userSession->setTokenProvider($tokenProvider);
+        $userSession->createSessionToken($request, $user->getUID(), $user->getUID());
+        $token = $tokenProvider->getToken($userSession->getSession()->getId());
+
+        $userSession->completeLogin($user, [
+            'loginName' => $user->getUID(),
+            'password' => $userPassword,
+            'token' => empty($userPassword) ? $token : null,
+        ], false);
     }
 
     private function flatten($array, $prefix = '')
