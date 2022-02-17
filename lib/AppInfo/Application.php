@@ -62,6 +62,11 @@ class Application extends App implements IBootstrap
             'OCA\DAV\Connector\Sabre::authInit',
             '\OCA\OIDCLogin\WebDAV\BasicAuthBackend'
         );
+
+        $context->registerEventListener(
+            'OCA\DAV\Connector\Sabre::addPlugin',
+            '\OCA\OIDCLogin\WebDAV\BasicAuthBackend'
+        );
     }
 
     public function boot(IBootContext $context): void

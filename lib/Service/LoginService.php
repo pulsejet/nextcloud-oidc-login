@@ -333,7 +333,15 @@ class LoginService
 
     public function completeLogin($user, $userPassword, $userSession, $request)
     {
-        $userSession->getSession()->regenerateId();
+        /* On the v1 route /remote.php/webdav, a default nextcloud backend
+         * tries and fails to authenticate users, then close the session.
+         * This is why this check is needed.
+         * https://github.com/nextcloud/server/issues/31091
+         */
+        if (PHP_SESSION_ACTIVE === session_status()) {
+            $userSession->getSession()->regenerateId();
+        }
+
         $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
         $userSession->setTokenProvider($tokenProvider);
         $userSession->createSessionToken($request, $user->getUID(), $user->getUID());

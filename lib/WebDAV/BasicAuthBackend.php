@@ -105,7 +105,15 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
     private function setupUserFs($userId)
     {
         \OC_Util::setupFS($userId);
-        $this->session->close();
+
+        /* On the v1 route /remote.php/webdav, a default nextcloud backend
+         * tries and fails to authenticate users, then close the session.
+         * This is why this check is needed.
+         * https://github.com/nextcloud/server/issues/31091
+         */
+        if (PHP_SESSION_ACTIVE === session_status()) {
+            $this->session->close();
+        }
 
         return $this->principalPrefix.$userId;
     }
