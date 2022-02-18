@@ -56,6 +56,9 @@ $CONFIG = array (
     //   * home:     Home directory location. A symlink or external storage to this location is used
     //   * ldap_uid: LDAP uid to search for when running in proxy mode
     //   * groups:   Array or space separated string of NC groups for the user
+    //   * photoURL: The URL of the user avatar. The nextcloud server will download the picture
+    //                  at user login. This may lead to security issues. Use with care.
+    //                  This will only be effective if oidc_login_update_avatar is enabled.
     //   * is_admin: If this value is truthy, the user is added to the admin group (optional)
     //
     // The attributes in the OIDC response are flattened by adding the nested
@@ -99,6 +102,7 @@ $CONFIG = array (
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',
         'groups' => 'ownCloudGroups',
+        'photoURL' => 'picture',
         'is_admin' => 'ownCloudAdmin',
     ),
 
@@ -165,6 +169,11 @@ $CONFIG = array (
     // The time in seconds used to cache the OIDC well-known configuration from the provider.
     // The default value is 1 day.
     'oidc_login_well_known_caching_time' => 86400,
+
+    // If true, nextcloud will download user avatars on login.
+    // This may lead to security issues as the server does not control
+    // which URLs will be requested. Use with care.
+    'oidc_login_update_avatar' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
