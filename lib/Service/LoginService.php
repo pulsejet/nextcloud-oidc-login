@@ -5,6 +5,7 @@ namespace OCA\OIDCLogin\Service;
 use OC\Authentication\Token\DefaultTokenProvider;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
@@ -13,8 +14,13 @@ use OCP\IUserManager;
 
 class LoginService
 {
+    public const USER_AGENT = 'NextcloudOIDCLogin';
+
     /** @var string */
     private $appName;
+
+    /** @var IAvatarManager */
+    private $avatarManager;
 
     /** @var IConfig */
     private $config;
@@ -38,6 +44,7 @@ class LoginService
         $appName,
         IConfig $config,
         IUserManager $userManager,
+        IAvatarManager $avatarManager,
         IGroupManager $groupManager,
         ISession $session,
         IL10N $l,
@@ -46,6 +53,7 @@ class LoginService
         $this->appName = $appName;
         $this->config = $config;
         $this->userManager = $userManager;
+        $this->avatarManager = $avatarManager;
         $this->groupManager = $groupManager;
         $this->session = $session;
         $this->l = $l;
@@ -84,6 +92,7 @@ class LoginService
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
             'groups' => 'ownCloudGroups',
+            'photoURL' => 'picture',
         ];
         $attr = array_merge($defattr, $confattr);
 
@@ -250,6 +259,28 @@ class LoginService
             } else {
                 if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
                     $user->setQuota((string) $defaultQuota);
+                }
+            }
+
+            if ($this->config->getSystemValue('oidc_login_update_avatar', false)
+                && \array_key_exists($attr['photoURL'], $profile)
+                && $profile[$attr['photoURL']]) {
+                try {
+                    $curl = curl_init($profile[$attr['photoURL']]);
+                    curl_setopt($curl, CURLOPT_HEADER, false);
+                    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($curl, CURLOPT_BINARYTRANSFER, true);
+                    curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
+                    $raw = curl_exec($curl);
+                    curl_close($curl);
+
+                    $image = new \OC_Image();
+                    $image->loadFromData($raw);
+
+                    $avatar = $this->avatarManager->getAvatar($user->getUid());
+                    $avatar->set($image);
+                } catch (\Exception $e) {
+                    \OC::$server->getLogger()->debug("Could not load image for {$uid} :  {$e->getMessage()}");
                 }
             }
 
