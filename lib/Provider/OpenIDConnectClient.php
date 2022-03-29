@@ -56,6 +56,13 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             $this->config->getSystemValue('oidc_login_client_secret'),
             $issuer
         );
+
+        // Get Nextcloud Proxy from system value
+        $proxy = $this->config->getSystemValue('proxy');
+        if (!empty($proxy)) {
+            $this->setHttpProxy($proxy);
+        }
+
         $this->session = $session;
         $this->appName = $appName;
         $this->publicKeyCachingTime = $this->config->getSystemValue('oidc_login_public_key_caching_time', self::DEFAULT_PUBLIC_KEY_CACHING_TIME);
