@@ -20,6 +20,6 @@ Make possible create users and login via one single OpenID Connect provider. Eve
     <repository>https://github.com/pulsejet/nextcloud-single-openid-connect</repository>
     <screenshot>https://raw.githubusercontent.com/pulsejet/nextcloud-single-openid-connect/master/appinfo/screenshot.png</screenshot>
     <dependencies>
-        <nextcloud min-version="20" max-version="23" />
+        <nextcloud min-version="20" max-version="24" />
     </dependencies>
 </info>
