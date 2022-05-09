@@ -2,7 +2,7 @@
 
 namespace OCA\OIDCLogin\Service;
 
-use OC\Authentication\Token\DefaultTokenProvider;
+use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCP\IAvatarManager;
@@ -37,6 +37,9 @@ class LoginService
     /** @var IL10N */
     private $l;
 
+    /** @var IProvider */
+    private $tokenProvider;
+
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
 
@@ -48,6 +51,7 @@ class LoginService
         IGroupManager $groupManager,
         ISession $session,
         IL10N $l,
+        IProvider $tokenProvider,
         $storagesService
     ) {
         $this->appName = $appName;
@@ -57,6 +61,7 @@ class LoginService
         $this->groupManager = $groupManager;
         $this->session = $session;
         $this->l = $l;
+        $this->tokenProvider = $tokenProvider;
         $this->storagesService = $storagesService;
     }
 
@@ -373,10 +378,9 @@ class LoginService
             $userSession->getSession()->regenerateId();
         }
 
-        $tokenProvider = \OC::$server->query(DefaultTokenProvider::class);
-        $userSession->setTokenProvider($tokenProvider);
+        $userSession->setTokenProvider($this->tokenProvider);
         $userSession->createSessionToken($request, $user->getUID(), $user->getUID());
-        $token = $tokenProvider->getToken($userSession->getSession()->getId());
+        $token = $this->tokenProvider->getToken($userSession->getSession()->getId());
 
         $userSession->completeLogin($user, [
             'loginName' => $user->getUID(),

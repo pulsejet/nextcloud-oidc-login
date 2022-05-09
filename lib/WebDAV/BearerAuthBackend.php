@@ -71,7 +71,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      */
     public function validateBearerToken($bearerToken)
     {
-        \OC_Util::setupFS(); //login hooks may need early access to the filesystem
+        \OC_Util::setupFS(); // login hooks may need early access to the filesystem
 
         if (!$this->userSession->isLoggedIn()) {
             try {

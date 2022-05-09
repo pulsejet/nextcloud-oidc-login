@@ -144,7 +144,7 @@ class LoginController extends Controller
 
         list($user, $userPassword) = $this->loginService->login($profile, $this->userSession, $this->request);
 
-        //Workaround to create user files folder. Remove it later.
+        // Workaround to create user files folder. Remove it later.
         \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
