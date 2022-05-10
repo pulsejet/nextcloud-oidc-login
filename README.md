@@ -197,7 +197,9 @@ $CONFIG = array (
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
 'oidc_login_client_secret' => 'secret', // Client Secret: Got to Clients -> Client -> Credentials
 'oidc_login_provider_url' => 'https://keycloak.example.com/auth/realms/YOUR_REALM',
-'oidc_login_logout_url' => 'https://keycloak.example.com/auth/realms/MY_REALM/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fcloud.example.com%2F',
+'oidc_login_end_session_redirect' => true, // Keycloak 18+
+'oidc_login_logout_url' => 'https://cloud.example.com/apps/oidc_login/oidc', // Keycloak 18+
+// 'oidc_login_logout_url' => 'https://keycloak.example.com/auth/realms/MY_REALM/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fcloud.example.com%2F', // Keycloak <18
 'oidc_login_auto_redirect' => true,
 'oidc_login_redir_fallback' => true,
 'oidc_login_attributes' => array(
