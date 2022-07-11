@@ -191,6 +191,7 @@ class LoginService
 
         // Remove duplicate groups
         $groupNames = array_unique($groupNames);
+        
         // Check if authorization is enabled and fail in case user is not in authorized group
         if ($authorizedGroup = $this->config->getSystemValue('oidc_login_authorized_group')) {
             if (isset($authorizedGroup) && !empty($authorizedGroup) && !in_array($authorizedGroup, $groupNames)) {
