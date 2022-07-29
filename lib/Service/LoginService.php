@@ -198,8 +198,8 @@ class LoginService
             if (isset($authorizedGroups) && !empty($authorizedGroups)){
                 if (is_array($authorizedGroups)){
                     $found = False
-                    foreach($authorizedGroups as $authorizedgroup){
-                        if(in_array($authorizedGroups, $groupNames)){
+                    foreach($authorizedGroups as $authorizedGroup){
+                        if(!empty($authorizedGroup) && in_array($authorizedGroup, $groupNames)){
                             $found =True
                         }
                         if(!$found){
