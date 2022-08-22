@@ -104,7 +104,7 @@ class LoginController extends Controller
                 $noRedirLoginUrl = $this->urlGenerator->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1';
                 header('Location: '.$noRedirLoginUrl);
 
-                exit();
+                exit;
             }
 
             // Show error page
