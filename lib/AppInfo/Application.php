@@ -117,7 +117,7 @@ class Application extends App implements IBootstrap
 
                     header('Location: '.$logoutUrl);
 
-                    exit();
+                    exit;
                 });
             }
 
@@ -151,7 +151,7 @@ class Application extends App implements IBootstrap
             if ($useLoginRedirect) {
                 header('Location: '.$loginLink);
 
-                exit();
+                exit;
             }
 
             // Alt login page
@@ -161,7 +161,7 @@ class Application extends App implements IBootstrap
 
                 require $altLoginPage;
 
-                exit();
+                exit;
             }
         }
     }
