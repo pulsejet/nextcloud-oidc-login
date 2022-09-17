@@ -1,0 +1,43 @@
+name: release
+
+on:
+  release:
+    types: [published]
+
+env:
+  APP_NAME: oidc_login
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        path: ${{ env.APP_NAME }}
+
+    - name: Build release bundle
+      run: |
+        rm -f oidc_login.tar.gz
+        rm -rf oidc_login/.git/
+        tar -zvcf oidc_login.tar.gz oidc_login/
+
+    - name: Upload app tarball to release
+      uses: svenstaro/upload-release-action@v2
+      id: attach_to_release
+      with:
+        file: oidc_login.tar.gz
+        asset_name: oidc_login.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+
+    - name: Upload app to Nextcloud appstore
+      uses: R0Wi/nextcloud-appstore-push-action@v1
+      with:
+        app_name: ${{ env.APP_NAME }}
+        appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+        download_url: ${{ steps.attach_to_release.outputs.browser_download_url }}
+        app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+        nightly: ${{ github.event.release.prerelease }}
