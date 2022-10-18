@@ -22,6 +22,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     // .well-known/openid-configuration shouldn't change much, so we default to 1 day.
     private const DEFAULT_WELL_KNOWN_CACHING_TIME = 86400;
 
+    // Don't skip Nextcloud HTTP proxy by default
+    private const DEFAULT_SKIP_PROXY = false;
+
     /** @var ISession */
     private $session;
 
@@ -56,6 +59,15 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             $this->config->getSystemValue('oidc_login_client_secret'),
             $issuer
         );
+
+        // Get Nextcloud proxy from system value
+        $proxy = $this->config->getSystemValue('proxy');
+
+        // Enable proxy only if set in configuration and not skipped
+        if (!empty($proxy) && !$this->config->getSystemValue('oidc_login_skip_proxy', self::DEFAULT_SKIP_PROXY)) {
+            $this->setHttpProxy($proxy);
+        }
+
         $this->session = $session;
         $this->appName = $appName;
         $this->publicKeyCachingTime = $this->config->getSystemValue('oidc_login_public_key_caching_time', self::DEFAULT_PUBLIC_KEY_CACHING_TIME);
