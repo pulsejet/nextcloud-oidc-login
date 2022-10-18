@@ -174,6 +174,10 @@ $CONFIG = array (
     // This may lead to security issues as the server does not control
     // which URLs will be requested. Use with care.
     'oidc_login_update_avatar' => false,
+
+    // If true, the default Nextcloud proxy won't be used to make internals OIDC call.
+    // The default is false.
+    'oidc_login_skip_proxy' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
