@@ -316,6 +316,14 @@ class LoginService
         return [$user, $userPassword];
     }
 
+    /**
+     * Log in the user to the session using the provided credentials.
+     *
+     * @param IUser        $user         User object (should be non-null)
+     * @param string       $userPassword (empty unless first login)
+     * @param IUserSession $userSession
+     * @param IRequest     $request
+     */
     public function completeLogin($user, $userPassword, $userSession, $request)
     {
         /* On the v1 route /remote.php/webdav, a default nextcloud backend
