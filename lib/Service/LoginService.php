@@ -143,45 +143,11 @@ class LoginService
             // Update basic profile attributes
             $this->updateBasicProfile($user, $profile, $attr);
 
-            // Groups to add user in
-            $groupNames = [];
-
-            // Add administrator group from attribute
+            // Should OIDC manage admin group?
             $manageAdmin = \array_key_exists('is_admin', $attr) && $attr['is_admin'];
-            if ($manageAdmin) {
-                $adminAttr = $attr['is_admin'];
-                if (\array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
-                    $groupNames[] = 'admin';
-                }
-            }
 
-            // Add default group if present
-            if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
-                $groupNames[] = $defaultGroup;
-            }
-
-            // Add user's groups from profile
-            $hasProfileGroups = \array_key_exists($attr['groups'], $profile);
-            if ($hasProfileGroups) {
-                // Get group names
-                $profileGroups = $profile[$attr['groups']];
-
-                // Explode by space if string
-                if (\is_string($profileGroups)) {
-                    $profileGroups = array_filter(explode(' ', $profileGroups));
-                }
-
-                // Make sure group names is an array
-                if (!\is_array($profileGroups)) {
-                    throw new LoginException($attr['groups'].' must be an array');
-                }
-
-                // Add to all groups
-                $groupNames = array_merge($groupNames, $profileGroups);
-            }
-
-            // Remove duplicate groups
-            $groupNames = array_unique($groupNames);
+            // Get group names
+            [$hasProfileGroups, $groupNames] = $this->getGroupNames($profile, $attr, $manageAdmin);
 
             // Remove user from groups not present
             $currentUserGroups = $this->groupManager->getUserGroups($user);
@@ -452,6 +418,63 @@ class LoginService
                 \OC::$server->getLogger()->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
         }
+    }
+
+    /**
+     * Get list of groups of user from OIDC response.
+     *
+     * The function returns an array with:
+     * 0: hasProfileGroups: boolean whether the OIDC response contains groups
+     * 1: groupNames: string array of group names
+     *
+     * @param array $profile     Profile attribute values
+     * @param array $attr        Attribute configuration mapping
+     * @param bool  $manageAdmin Whether to manage admin group with the is_admin attr
+     *
+     * @return array [hasProfileGroups, manageAdmin, groupNames]
+     */
+    private function getGroupNames(&$profile, &$attr, $manageAdmin)
+    {
+        // Groups to add user in
+        $groupNames = [];
+
+        // Add administrator group from attribute
+        if ($manageAdmin) {
+            $adminAttr = $attr['is_admin'];
+            if (\array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
+                $groupNames[] = 'admin';
+            }
+        }
+
+        // Add default group if present
+        if ($defaultGroup = $this->config->getSystemValue('oidc_login_default_group')) {
+            $groupNames[] = $defaultGroup;
+        }
+
+        // Add user's groups from profile
+        $hasProfileGroups = \array_key_exists($attr['groups'], $profile);
+        if ($hasProfileGroups) {
+            // Get group names
+            $profileGroups = $profile[$attr['groups']];
+
+            // Explode by space if string
+            if (\is_string($profileGroups)) {
+                $profileGroups = array_filter(explode(' ', $profileGroups));
+            }
+
+            // Make sure group names is an array
+            if (!\is_array($profileGroups)) {
+                throw new LoginException($attr['groups'].' must be an array');
+            }
+
+            // Add to all groups
+            $groupNames = array_merge($groupNames, $profileGroups);
+        }
+
+        // Remove duplicate groups
+        $groupNames = array_unique($groupNames);
+
+        return [$hasProfileGroups, $groupNames];
     }
 
     private function flatten($array, $prefix = '')
