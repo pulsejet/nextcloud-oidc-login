@@ -359,7 +359,6 @@ class LoginService
                 $curl = curl_init($photoURL);
                 curl_setopt($curl, CURLOPT_HEADER, false);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($curl, CURLOPT_BINARYTRANSFER, true);
                 curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
                 $raw = curl_exec($curl);
                 curl_close($curl);
