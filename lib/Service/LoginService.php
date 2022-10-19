@@ -132,69 +132,10 @@ class LoginService
             $user = $this->createUser($uid);
         }
 
-        // Get base data directory
-        $datadir = $this->config->getSystemValue('datadirectory');
-
         // Set home directory unless proxying for LDAP
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)
             && \array_key_exists($attr['home'], $profile)) {
-            // Get intended home directory
-            $home = $profile[$attr['home']];
-
-            if ($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
-                // Check if the files external app is enabled and injected
-                if (null === $this->storagesService) {
-                    throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
-                }
-
-                // Check if the user already has matching storage on their root
-                $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
-                    return \in_array($uid, $storage->getApplicableUsers(), true) // User must own the storage
-                        && '/' === $storage->getMountPoint() // It must be mounted as root
-                        && 'local' === $storage->getBackend()->getIdentifier() // It must be type local
-                        && \count(1 === $storage->getApplicableUsers()); // It can't be shared with other users
-                });
-
-                if (!empty($storages)) {
-                    // User had storage on their / so make sure it's the correct folder
-                    $storage = array_values($storages)[0];
-                    $options = $storage->getBackendOptions();
-
-                    if ($options['datadir'] !== $home) {
-                        $options['datadir'] = $home;
-                        $storage->setBackendOptions($options);
-                        $this->storagesService->updateStorage($storage);
-                    }
-                } else {
-                    // User didnt have any matching storage on their root, so make one
-                    $storage = $this->storagesService->createStorage('/', 'local', 'null::null', [
-                        'datadir' => $home,
-                    ], [
-                        'enable_sharing' => true,
-                    ]);
-                    $storage->setApplicableUsers([$uid]);
-                    $this->storagesService->addStorage($storage);
-                }
-            } else {
-                // Make home directory if does not exist
-                mkdir($home, 0777, true);
-
-                // Home directory (intended) of the user
-                $nhome = "{$datadir}/{$uid}";
-
-                // Check if correct link or home directory exists
-                if (!file_exists($nhome) || is_link($nhome)) {
-                    // Unlink if invalid link
-                    if (is_link($nhome) && readlink($nhome) !== $home) {
-                        unlink($nhome);
-                    }
-
-                    // Create symlink to directory
-                    if (!is_link($nhome) && !symlink($home, $nhome)) {
-                        throw new LoginException('Failed to create symlink to home directory');
-                    }
-                }
-            }
+            $this->createHomeDirectory($profile[$attr['home']], $uid);
         }
 
         // Update user profile
@@ -429,6 +370,75 @@ class LoginService
         $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
 
         return $this->userManager->createUser($uid, $userPassword);
+    }
+
+    /**
+     * Create the user's home directory at the given path.
+     *
+     * @param string $home Path to the home directory
+     * @param string $uid  User ID
+     *
+     * @throws LoginException If home directory could not be created
+     */
+    private function createHomeDirectory(string $home, string $uid)
+    {
+        if ($this->config->getSystemValue('oidc_login_use_external_storage', false)) {
+            // Check if the files external app is enabled and injected
+            if (null === $this->storagesService) {
+                throw new LoginException($this->l->t('files_external app must be enabled to use oidc_login_use_external_storage'));
+            }
+
+            // Check if the user already has matching storage on their root
+            $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
+                return \in_array($uid, $storage->getApplicableUsers(), true) // User must own the storage
+                    && '/' === $storage->getMountPoint() // It must be mounted as root
+                    && 'local' === $storage->getBackend()->getIdentifier() // It must be type local
+                    && 1 === \count($storage->getApplicableUsers()); // It can't be shared with other users
+            });
+
+            if (!empty($storages)) {
+                // User had storage on their / so make sure it's the correct folder
+                $storage = array_values($storages)[0];
+                $options = $storage->getBackendOptions();
+
+                if ($options['datadir'] !== $home) {
+                    $options['datadir'] = $home;
+                    $storage->setBackendOptions($options);
+                    $this->storagesService->updateStorage($storage);
+                }
+            } else {
+                // User didnt have any matching storage on their root, so make one
+                $storage = $this->storagesService->createStorage('/', 'local', 'null::null', [
+                    'datadir' => $home,
+                ], [
+                    'enable_sharing' => true,
+                ]);
+                $storage->setApplicableUsers([$uid]);
+                $this->storagesService->addStorage($storage);
+            }
+        } else {
+            // Make home directory if does not exist
+            mkdir($home, 0777, true);
+
+            // Get base data directory
+            $datadir = $this->config->getSystemValue('datadirectory');
+
+            // Home directory (intended) of the user
+            $nhome = "{$datadir}/{$uid}";
+
+            // Check if correct link or home directory exists
+            if (!file_exists($nhome) || is_link($nhome)) {
+                // Unlink if invalid link
+                if (is_link($nhome) && readlink($nhome) !== $home) {
+                    unlink($nhome);
+                }
+
+                // Create symlink to directory
+                if (!is_link($nhome) && !symlink($home, $nhome)) {
+                    throw new LoginException('Failed to create symlink to home directory');
+                }
+            }
+        }
     }
 
     private function flatten($array, $prefix = '')
