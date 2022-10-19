@@ -129,12 +129,7 @@ class LoginService
 
         // Create user if not existing
         if (null === $user) {
-            if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
-                throw new LoginException($this->l->t('Auto creating new users is disabled'));
-            }
-
-            $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
-            $user = $this->userManager->createUser($uid, $userPassword);
+            $user = $this->createUser($uid);
         }
 
         // Get base data directory
@@ -406,6 +401,26 @@ class LoginService
         // Force a UID for existing users with a different
         // user ID in nextcloud than in LDAP
         return $ldap->dn2UserName($dn);
+    }
+
+    /**
+     * Create a user if we are allowed to do that.
+     *
+     * @param string $uid
+     *
+     * @return false|\OCP\IUser User object if created
+     *
+     * @throws LoginException If oidc_login_disable_registration is true
+     */
+    private function createUser($uid)
+    {
+        if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
+            throw new LoginException($this->l->t('Auto creating new users is disabled'));
+        }
+
+        $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
+
+        return $this->userManager->createUser($uid, $userPassword);
     }
 
     private function flatten($array, $prefix = '')
