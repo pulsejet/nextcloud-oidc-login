@@ -126,7 +126,14 @@ $CONFIG = array (
     // "Internal Username" (see expert settings in LDAP integration)
     'oidc_login_proxy_ldap' => false,
 
-    // Disable creation of new users from OIDC login
+    // Disable creation of users new to Nextcloud from OIDC login.
+    // A user may be known to the IdP but not (yet) known to Nextcloud.
+    // This setting controls what to do in this case.
+    // - 'true' (default): if the user authenticates to the IdP but is not known to Nextcloud,
+    //     then they will be returned to the login screen and not allowed entry;
+    // - 'false': if the user authenticates but is not yet known to Nextcloud,
+    //     then the user will be automatically created; note that with this setting,
+    //     you will be allowing (or relying on) a third-party (the IdP) to create new users
     'oidc_login_disable_registration' => true,
 
     // Fallback to direct login if login from OIDC fails
