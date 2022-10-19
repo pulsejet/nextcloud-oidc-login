@@ -1,6 +1,15 @@
 # Nextcloud OIDC Login
 
-Make possible create users and login via one single OpenID Connect provider. Even though a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalistic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin. Supports automatic discovery of endpoints through the OpenID Connect spec, with a single provider configuration attribute. It also supports accessing Nextcloud WebDAV using a providers bearer token.
+Provides user creation and login via one single OpenID Connect provider. Even though this is a fork of [nextcloud-social-login](https://github.com/zorn-v/nextcloud-social-login), it fundamentally differs in two ways - aims for simplistic, single provider login (and hence is very minimalistic), and it supports having LDAP as the primary user backend. This way, you can use OpenID Connect to login to Nextcloud while maintaining an LDAP backend with attributes with the LDAP plugin.
+
+### Features
+
+- Automatic [Identity provider endpoints discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)
+- User creation at first login
+- User profile update at login (name, email, avatar, groups etc.)
+- Group creation
+- Automatic redirection from the nextcloud login page to the Identity Provider login page
+- WebDAV endpoints `Bearer` and `Basic` authentication
 
 ## Config
 
