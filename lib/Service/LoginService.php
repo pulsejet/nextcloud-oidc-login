@@ -43,6 +43,9 @@ class LoginService
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
 
+    /** @var string[] Profile attribute map */
+    private $attr;
+
     public function __construct(
         $appName,
         IConfig $config,
@@ -63,6 +66,20 @@ class LoginService
         $this->l = $l;
         $this->tokenProvider = $tokenProvider;
         $this->storagesService = $storagesService;
+
+        // Get attribute map from configuration
+        $confattr = $this->config->getSystemValue('oidc_login_attributes', []);
+        $defattr = [
+            'id' => 'sub',
+            'name' => 'name',
+            'mail' => 'email',
+            'quota' => 'ownCloudQuota',
+            'home' => 'homeDirectory',
+            'ldap_uid' => 'uid',
+            'groups' => 'ownCloudGroups',
+            'photoURL' => 'picture',
+        ];
+        $this->attr = array_merge($defattr, $confattr);
     }
 
     public function createOIDCClient($callbackUrl = '')
@@ -87,29 +104,15 @@ class LoginService
 
     public function login($profile, $userSession, $request)
     {
-        // Get attributes
-        $confattr = $this->config->getSystemValue('oidc_login_attributes', []);
-        $defattr = [
-            'id' => 'sub',
-            'name' => 'name',
-            'mail' => 'email',
-            'quota' => 'ownCloudQuota',
-            'home' => 'homeDirectory',
-            'ldap_uid' => 'uid',
-            'groups' => 'ownCloudGroups',
-            'photoURL' => 'picture',
-        ];
-        $attr = array_merge($defattr, $confattr);
-
         // Flatten the profile array
         $profile = $this->flatten($profile);
 
         // Get UID
-        $uid = $profile[$attr['id']];
+        $uid = $profile[$this->attr['id']];
 
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            $ldapUid = $profile[$attr['ldap_uid']];
+            $ldapUid = $profile[$this->attr['ldap_uid']];
             $uid = $this->getLDAPUserUid($ldapUid) ?: $uid;
         }
 
@@ -134,52 +137,20 @@ class LoginService
 
         // Set home directory unless proxying for LDAP
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)
-            && \array_key_exists($attr['home'], $profile)) {
-            $this->createHomeDirectory($profile[$attr['home']], $uid);
+            && \array_key_exists($this->attr['home'], $profile)) {
+            $this->createHomeDirectory($profile[$this->attr['home']], $uid);
         }
 
         // Update user profile
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
             // Update basic profile attributes
-            $this->updateBasicProfile($user, $profile, $attr);
-
-            // Should OIDC manage admin group?
-            $manageAdmin = \array_key_exists('is_admin', $attr) && $attr['is_admin'];
+            $this->updateBasicProfile($user, $profile);
 
             // Get group names
-            [$hasProfileGroups, $groupNames] = $this->getGroupNames($profile, $attr, $manageAdmin);
+            $groupNames = $this->getGroupNames($profile);
 
-            // Remove user from groups not present
-            $currentUserGroups = $this->groupManager->getUserGroups($user);
-            foreach ($currentUserGroups as $currentUserGroup) {
-                if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames, true)) !== false) {
-                    // User is already in group - don't process further
-                    unset($groupNames[$key]);
-                } else {
-                    // User is not supposed to be in this group
-                    // Remove the user ONLY if we're using profile groups
-                    // or the group is the `admin` group and we manage admin role
-                    if ($hasProfileGroups || ($manageAdmin && 'admin' === $currentUserGroup->getDisplayName())) {
-                        $currentUserGroup->removeUser($user);
-                    }
-                }
-            }
-
-            // Add user to group
-            foreach ($groupNames as $group) {
-                // Get existing group
-                $systemgroup = $this->groupManager->get($group);
-
-                // Create group if does not exist
-                if (!$systemgroup && $this->config->getSystemValue('oidc_create_groups', false)) {
-                    $systemgroup = $this->groupManager->createGroup($group);
-                }
-
-                // Add user to group
-                if ($systemgroup) {
-                    $systemgroup->addUser($user);
-                }
-            }
+            // Update groups
+            $this->updateUserGroups($user, $groupNames, $profile);
         }
 
         $this->completeLogin($user, $userPassword, $userSession, $request);
@@ -376,21 +347,20 @@ class LoginService
      *
      * @param \OCP\IUser $user
      * @param array      $profile Profile attribute values
-     * @param array      $attr    Attribute configuration mapping
      */
-    private function updateBasicProfile(&$user, &$profile, &$attr)
+    private function updateBasicProfile(&$user, &$profile)
     {
-        if (null !== $attr['name']) {
-            $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
+        if (null !== $this->attr['name']) {
+            $user->setDisplayName($profile[$this->attr['name']] ?: $profile[$this->attr['id']]);
         }
 
-        if (null !== $attr['mail']) {
-            $user->setEMailAddress((string) $profile[$attr['mail']]);
+        if (null !== $this->attr['mail']) {
+            $user->setEMailAddress((string) $profile[$this->attr['mail']]);
         }
 
         // Set optional params
-        if (\array_key_exists($attr['quota'], $profile)) {
-            $user->setQuota((string) $profile[$attr['quota']]);
+        if (\array_key_exists($this->attr['quota'], $profile)) {
+            $user->setQuota((string) $profile[$this->attr['quota']]);
         } else {
             if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
                 $user->setQuota((string) $defaultQuota);
@@ -398,10 +368,10 @@ class LoginService
         }
 
         if ($this->config->getSystemValue('oidc_login_update_avatar', false)
-            && \array_key_exists($attr['photoURL'], $profile)
-            && $profile[$attr['photoURL']]) {
+            && \array_key_exists($this->attr['photoURL'], $profile)
+            && $profile[$this->attr['photoURL']]) {
             try {
-                $curl = curl_init($profile[$attr['photoURL']]);
+                $curl = curl_init($profile[$this->attr['photoURL']]);
                 curl_setopt($curl, CURLOPT_HEADER, false);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl, CURLOPT_BINARYTRANSFER, true);
@@ -423,24 +393,18 @@ class LoginService
     /**
      * Get list of groups of user from OIDC response.
      *
-     * The function returns an array with:
-     * 0: hasProfileGroups: boolean whether the OIDC response contains groups
-     * 1: groupNames: string array of group names
+     * @param array $profile Profile attribute values
      *
-     * @param array $profile     Profile attribute values
-     * @param array $attr        Attribute configuration mapping
-     * @param bool  $manageAdmin Whether to manage admin group with the is_admin attr
-     *
-     * @return array [hasProfileGroups, manageAdmin, groupNames]
+     * @return string[] List of groups
      */
-    private function getGroupNames(&$profile, &$attr, $manageAdmin)
+    private function getGroupNames(&$profile)
     {
         // Groups to add user in
         $groupNames = [];
 
         // Add administrator group from attribute
-        if ($manageAdmin) {
-            $adminAttr = $attr['is_admin'];
+        if ($this->shouldManageAdmin()) {
+            $adminAttr = $this->attr['is_admin'];
             if (\array_key_exists($adminAttr, $profile) && $profile[$adminAttr]) {
                 $groupNames[] = 'admin';
             }
@@ -452,10 +416,9 @@ class LoginService
         }
 
         // Add user's groups from profile
-        $hasProfileGroups = \array_key_exists($attr['groups'], $profile);
-        if ($hasProfileGroups) {
+        if ($this->hasProfileGroups($profile)) {
             // Get group names
-            $profileGroups = $profile[$attr['groups']];
+            $profileGroups = $profile[$this->attr['groups']];
 
             // Explode by space if string
             if (\is_string($profileGroups)) {
@@ -464,7 +427,7 @@ class LoginService
 
             // Make sure group names is an array
             if (!\is_array($profileGroups)) {
-                throw new LoginException($attr['groups'].' must be an array');
+                throw new LoginException($this->attr['groups'].' must be an array');
             }
 
             // Add to all groups
@@ -474,7 +437,68 @@ class LoginService
         // Remove duplicate groups
         $groupNames = array_unique($groupNames);
 
-        return [$hasProfileGroups, $groupNames];
+        return $groupNames;
+    }
+
+    /**
+     * Update groups of a user to a given list of groups.
+     *
+     * @param \OCP\IUser $user
+     * @param string[]   $groupNames Name of groups
+     * @param array      $profile    Profile from OIDC
+     */
+    private function updateUserGroups(&$user, &$groupNames, &$profile)
+    {
+        // Remove user from groups not present
+        $currentUserGroups = $this->groupManager->getUserGroups($user);
+        foreach ($currentUserGroups as $currentUserGroup) {
+            if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames, true)) !== false) {
+                // User is already in group - don't process further
+                unset($groupNames[$key]);
+            } else {
+                // User is not supposed to be in this group
+                // Remove the user ONLY if we're using profile groups
+                // or the group is the `admin` group and we manage admin role
+                if ($this->hasProfileGroups($profile)
+                    || ($this->shouldManageAdmin() && 'admin' === $currentUserGroup->getDisplayName())) {
+                    $currentUserGroup->removeUser($user);
+                }
+            }
+        }
+
+        // Add user to group
+        foreach ($groupNames as $group) {
+            // Get existing group
+            $systemgroup = $this->groupManager->get($group);
+
+            // Create group if does not exist
+            if (!$systemgroup && $this->config->getSystemValue('oidc_create_groups', false)) {
+                $systemgroup = $this->groupManager->createGroup($group);
+            }
+
+            // Add user to group
+            if ($systemgroup) {
+                $systemgroup->addUser($user);
+            }
+        }
+    }
+
+    /**
+     * Returns whether the OIDC response has the groups field in it.
+     *
+     * @param array $profile Profile from OIDC
+     */
+    private function hasProfileGroups(&$profile)
+    {
+        return \array_key_exists($this->attr['groups'], $profile);
+    }
+
+    /**
+     * Returns whether OIDC should manage the admin role with `is_admin` attribute.
+     */
+    private function shouldManageAdmin()
+    {
+        return \array_key_exists('is_admin', $this->attr) && $this->attr['is_admin'];
     }
 
     private function flatten($array, $prefix = '')
