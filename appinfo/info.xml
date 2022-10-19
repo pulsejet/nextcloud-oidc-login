@@ -29,6 +29,6 @@ Provides user creation and login via one single OpenID Connect provider. Even th
     <repository>https://github.com/pulsejet/nextcloud-single-openid-connect</repository>
     <screenshot>https://raw.githubusercontent.com/pulsejet/nextcloud-single-openid-connect/master/appinfo/screenshot.png</screenshot>
     <dependencies>
-        <nextcloud min-version="20" max-version="24" />
+        <nextcloud min-version="20" max-version="25" />
     </dependencies>
 </info>
