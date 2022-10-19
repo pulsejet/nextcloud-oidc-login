@@ -11,6 +11,7 @@ use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\ISession;
 use OCP\IUserManager;
+use Psr\Log\LoggerInterface;
 
 class LoginService
 {
@@ -40,6 +41,9 @@ class LoginService
     /** @var IProvider */
     private $tokenProvider;
 
+    /** @var LoggerInterface */
+    private $logger;
+
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
 
@@ -55,6 +59,7 @@ class LoginService
         ISession $session,
         IL10N $l,
         IProvider $tokenProvider,
+        LoggerInterface $logger,
         $storagesService
     ) {
         $this->appName = $appName;
@@ -65,6 +70,7 @@ class LoginService
         $this->session = $session;
         $this->l = $l;
         $this->tokenProvider = $tokenProvider;
+        $this->logger = $logger;
         $this->storagesService = $storagesService;
         $this->attr = new AttributeMap($config);
     }
@@ -369,7 +375,7 @@ class LoginService
                 $avatar = $this->avatarManager->getAvatar($user->getUid());
                 $avatar->set($image);
             } catch (\Exception $e) {
-                \OC::$server->getLogger()->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
+                $this->logger->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
         }
     }

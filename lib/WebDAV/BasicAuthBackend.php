@@ -6,10 +6,10 @@ use OCA\OIDCLogin\Service\LoginService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
 
 class BasicAuthBackend extends AbstractBasic implements IEventListener
@@ -29,7 +29,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
     /** @var IConfig */
     private $config;
 
-    /** @var ILogger */
+    /** @var LoggerInterface */
     private $logger;
 
     /** @var LoginService */
@@ -44,7 +44,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         IUserSession $userSession,
         ISession $session,
         IConfig $config,
-        ILogger $logger,
+        LoggerInterface $logger,
         LoginService $loginService,
         $principalPrefix = 'principals/users/'
     ) {

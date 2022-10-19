@@ -6,10 +6,10 @@ use OCA\OIDCLogin\Service\LoginService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Auth\Backend\AbstractBearer;
 
 class BearerAuthBackend extends AbstractBearer implements IEventListener
@@ -32,7 +32,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
     /** @var string */
     private $principalPrefix;
 
-    /** @var ILogger */
+    /** @var LoggerInterface */
     private $logger;
 
     /** @var LoginService */
@@ -47,7 +47,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         IUserSession $userSession,
         ISession $session,
         IConfig $config,
-        ILogger $logger,
+        LoggerInterface $logger,
         LoginService $loginService,
         $principalPrefix = 'principals/users/'
     ) {
