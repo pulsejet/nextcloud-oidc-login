@@ -109,54 +109,8 @@ class LoginService
 
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            // Get LDAP uid
             $ldapUid = $profile[$attr['ldap_uid']];
-            if (empty($ldapUid)) {
-                throw new LoginException($this->l->t('No LDAP UID found in OpenID response'));
-            }
-
-            // Get the LDAP user backend
-            $ldap = null;
-            foreach ($this->userManager->getBackends() as $backend) {
-                if ($backend->getBackendName() === $this->config->getSystemValue('oidc_login_ldap_backend', 'LDAP')) {
-                    $ldap = $backend;
-                }
-            }
-
-            // Check if backend found
-            if (null === $ldap) {
-                throw new LoginException($this->l->t('No LDAP user backend found!'));
-            }
-
-            // Get LDAP Access object
-            $access = $ldap->getLDAPAccess($ldapUid);
-
-            // Get the DN
-            $dns = $access->fetchUsersByLoginName($ldapUid);
-            if (empty($dns)) {
-                throw new LoginException($this->l->t('Error getting DN for LDAP user'));
-            }
-            $dn = $dns[0];
-
-            // Store the user
-            $ldapUser = $access->userManager->get($dn);
-            if (null === $ldapUser) {
-                throw new LoginException($this->l->t('Error getting user from LDAP'));
-            }
-
-            // Method no longer exists on NC 20+
-            if (method_exists($ldapUser, 'update')) {
-                $ldapUser->update();
-            }
-
-            // Update the email address (#84)
-            if (method_exists($ldapUser, 'updateEmail')) {
-                $ldapUser->updateEmail();
-            }
-
-            // Force a UID for existing users with a different
-            // user ID in nextcloud than in LDAP
-            $uid = $ldap->dn2UserName($dn) ?: $uid;
+            $uid = $this->getLDAPUserUid($ldapUid) ?: $uid;
         }
 
         // Check UID
@@ -391,6 +345,67 @@ class LoginService
         // Update the user's last login timestamp, since the conditions above tend to cause the
         // completeLogin() call above to skip doing so.
         $user->updateLastLoginTimestamp();
+    }
+
+    /**
+     * If the LDAP backend interface is enabled, make user the
+     * user actually exists in LDAP and return the uid.
+     *
+     * @param null|string $ldapUid
+     *
+     * @return null|string LDAP user uid or null if not found
+     *
+     * @throws LoginException if LDAP backend is not enabled or user is not found
+     */
+    private function getLDAPUserUid($ldapUid)
+    {
+        // Make sure we have the LDAP UID
+        if (empty($ldapUid)) {
+            throw new LoginException($this->l->t('No LDAP UID found in OpenID response'));
+        }
+
+        // Get the LDAP user backend
+        $ldap = null;
+        foreach ($this->userManager->getBackends() as $backend) {
+            if ($backend->getBackendName() === $this->config->getSystemValue('oidc_login_ldap_backend', 'LDAP')) {
+                $ldap = $backend;
+            }
+        }
+
+        // Check if backend found
+        if (null === $ldap) {
+            throw new LoginException($this->l->t('No LDAP user backend found!'));
+        }
+
+        // Get LDAP Access object
+        $access = $ldap->getLDAPAccess($ldapUid);
+
+        // Get the DN
+        $dns = $access->fetchUsersByLoginName($ldapUid);
+        if (empty($dns)) {
+            throw new LoginException($this->l->t('Error getting DN for LDAP user'));
+        }
+        $dn = $dns[0];
+
+        // Store the user
+        $ldapUser = $access->userManager->get($dn);
+        if (null === $ldapUser) {
+            throw new LoginException($this->l->t('Error getting user from LDAP'));
+        }
+
+        // Method no longer exists on NC 20+
+        if (method_exists($ldapUser, 'update')) {
+            $ldapUser->update();
+        }
+
+        // Update the email address (#84)
+        if (method_exists($ldapUser, 'updateEmail')) {
+            $ldapUser->updateEmail();
+        }
+
+        // Force a UID for existing users with a different
+        // user ID in nextcloud than in LDAP
+        return $ldap->dn2UserName($dn);
     }
 
     private function flatten($array, $prefix = '')
