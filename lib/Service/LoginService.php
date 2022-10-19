@@ -140,44 +140,8 @@ class LoginService
 
         // Update user profile
         if (!$this->config->getSystemValue('oidc_login_proxy_ldap', false)) {
-            if (null !== $attr['name']) {
-                $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
-            }
-
-            if (null !== $attr['mail']) {
-                $user->setEMailAddress((string) $profile[$attr['mail']]);
-            }
-
-            // Set optional params
-            if (\array_key_exists($attr['quota'], $profile)) {
-                $user->setQuota((string) $profile[$attr['quota']]);
-            } else {
-                if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
-                    $user->setQuota((string) $defaultQuota);
-                }
-            }
-
-            if ($this->config->getSystemValue('oidc_login_update_avatar', false)
-                && \array_key_exists($attr['photoURL'], $profile)
-                && $profile[$attr['photoURL']]) {
-                try {
-                    $curl = curl_init($profile[$attr['photoURL']]);
-                    curl_setopt($curl, CURLOPT_HEADER, false);
-                    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($curl, CURLOPT_BINARYTRANSFER, true);
-                    curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
-                    $raw = curl_exec($curl);
-                    curl_close($curl);
-
-                    $image = new \OC_Image();
-                    $image->loadFromData($raw);
-
-                    $avatar = $this->avatarManager->getAvatar($user->getUid());
-                    $avatar->set($image);
-                } catch (\Exception $e) {
-                    \OC::$server->getLogger()->debug("Could not load image for {$uid} :  {$e->getMessage()}");
-                }
-            }
+            // Update basic profile attributes
+            $this->updateBasicProfile($user, $profile, $attr);
 
             // Groups to add user in
             $groupNames = [];
@@ -437,6 +401,55 @@ class LoginService
                 if (!is_link($nhome) && !symlink($home, $nhome)) {
                     throw new LoginException('Failed to create symlink to home directory');
                 }
+            }
+        }
+    }
+
+    /**
+     * Update basic profile attributes such as name and email.
+     *
+     * @param \OCP\IUser $user
+     * @param array      $profile Profile attribute values
+     * @param array      $attr    Attribute configuration mapping
+     */
+    private function updateBasicProfile(&$user, &$profile, &$attr)
+    {
+        if (null !== $attr['name']) {
+            $user->setDisplayName($profile[$attr['name']] ?: $profile[$attr['id']]);
+        }
+
+        if (null !== $attr['mail']) {
+            $user->setEMailAddress((string) $profile[$attr['mail']]);
+        }
+
+        // Set optional params
+        if (\array_key_exists($attr['quota'], $profile)) {
+            $user->setQuota((string) $profile[$attr['quota']]);
+        } else {
+            if ($defaultQuota = $this->config->getSystemValue('oidc_login_default_quota')) {
+                $user->setQuota((string) $defaultQuota);
+            }
+        }
+
+        if ($this->config->getSystemValue('oidc_login_update_avatar', false)
+            && \array_key_exists($attr['photoURL'], $profile)
+            && $profile[$attr['photoURL']]) {
+            try {
+                $curl = curl_init($profile[$attr['photoURL']]);
+                curl_setopt($curl, CURLOPT_HEADER, false);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curl, CURLOPT_BINARYTRANSFER, true);
+                curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
+                $raw = curl_exec($curl);
+                curl_close($curl);
+
+                $image = new \OC_Image();
+                $image->loadFromData($raw);
+
+                $avatar = $this->avatarManager->getAvatar($user->getUid());
+                $avatar->set($image);
+            } catch (\Exception $e) {
+                \OC::$server->getLogger()->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
         }
     }
