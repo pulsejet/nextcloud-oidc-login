@@ -197,10 +197,10 @@ class LoginService
         if ($authorizedGroups = $this->config->getSystemValue('oidc_login_authorized_groups')) {
             if (isset($authorizedGroups) && !empty($authorizedGroups)){
                 if (is_array($authorizedGroups)){
-                    $found = False
+                    $found = False;
                     foreach($authorizedGroups as $authorizedGroup){
                         if(!empty($authorizedGroup) && in_array($authorizedGroup, $groupNames)){
-                            $found =True
+                            $found = True;
                         }
                         if(!$found){
                             throw new LoginException($this->l->t('Access to this application is not allowed'));
