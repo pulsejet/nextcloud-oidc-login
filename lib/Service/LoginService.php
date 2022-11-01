@@ -119,6 +119,14 @@ class LoginService
             $uid = md5($uid);
         }
 
+        // Check if user is in allowed groups
+        if ($allowedGroups = $this->config->getSystemValue('oidc_login_allowed_groups', null)) {
+            $groupNames = $this->getGroupNames($profile);
+            if (empty(array_intersect($allowedGroups, $groupNames))) {
+                throw new LoginException($this->l->t('Access to this service is not allowed because you are not member of the allowed groups. If you think this is an error, contact your administrator.'));
+            }
+        }
+
         // Get user with fallback
         $user = $this->userManager->get($uid);
         $userPassword = '';

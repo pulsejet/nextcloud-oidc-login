@@ -118,6 +118,14 @@ $CONFIG = array (
     // Default group to add users to (optional, defaults to nothing)
     'oidc_login_default_group' => 'oidc',
 
+    // Allow only users in configured group(s) to access Nextcloud. In case the user
+    // is not assigned to this group (read from oidc_login_attributes) the login
+    // will not be allowed for this user.
+    //
+    // Must be specified as an array of groups that are allowed to access Nextcloud.
+    // e.g. 'oidc_login_allowed_groups' => array('group1', 'group2')
+    'oidc_login_allowed_groups' => null,
+
     // Use external storage instead of a symlink to the home directory
     // Requires the files_external app to be enabled
     'oidc_login_use_external_storage' => false,
