@@ -60,6 +60,11 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             $issuer
         );
 
+        $codeChallengeMethod = $this->config->getSystemValue('oidc_login_code_challenge_method');
+        if (!empty($codeChallengeMethod)) {
+            $this->setCodeChallengeMethod($codeChallengeMethod);
+        }
+
         // Get Nextcloud proxy from system value
         $proxy = $this->config->getSystemValue('proxy');
 

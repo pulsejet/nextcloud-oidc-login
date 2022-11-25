@@ -202,6 +202,13 @@ $CONFIG = array (
     // If true, the default Nextcloud proxy won't be used to make internals OIDC call.
     // The default is false.
     'oidc_login_skip_proxy' => false,
+
+    // Code challenge method for PKCE flow. 
+    // Possible values are:
+    //	- 'S256'
+    //	- 'plain'
+    // The default value is empty, which won't apply the PKCE flow.
+    'oidc_login_code_challenge_method' => '',
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
@@ -236,6 +243,10 @@ $CONFIG = array (
 ),
 // If you are running Nextcloud behind a reverse proxy, make sure this is set
 'overwriteprotocol' => 'https',
+```
+4. (optional) Enable the [PKCE flow](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce) by setting the value `Clients` &rarr; `Your NC client` &rarr; `Advanced` &rarr; `Proof Key for Code Exchange Code Challenge Method` to `S256`. Please also set the appropriate configuration value accordingly:
+```php
+'oidc_login_code_challenge_method' => 'S256',
 ```
 
 **Note:**
