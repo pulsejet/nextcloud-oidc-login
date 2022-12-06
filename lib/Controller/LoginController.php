@@ -59,6 +59,16 @@ class LoginController extends Controller
 
             // Get user info
             $profile = $oidc->getProfile();
+            $this->loginService->storeTokens($oidc->getTokenResponse());
+
+            $user = null;
+            if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
+                // Get user information from ID Token
+                $user = $oidc->getIdTokenPayload();
+            } else {
+                // Get user information from OIDC
+                $user = $oidc->requestUserInfo();
+            }
 
             // Store logout URLs in session
             $this->prepareLogout($oidc);

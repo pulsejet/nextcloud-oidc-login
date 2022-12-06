@@ -8,6 +8,7 @@ use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCA\OIDCLogin\OIDCLoginOption;
 use OCA\OIDCLogin\WebDAV\BasicAuthBackend;
 use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -28,6 +29,8 @@ class Application extends App implements IBootstrap
     protected IConfig $config;
 
     private $appName = 'oidc_login';
+
+    private $tokenService;
 
     public function __construct()
     {
@@ -62,12 +65,11 @@ class Application extends App implements IBootstrap
     public function boot(IBootContext $context): void
     {
         $container = $context->getAppContainer();
-        $this->l = $container->get(IL10N::class);
-        $this->url = $container->get(IURLGenerator::class);
-        $this->config = $container->get(IConfig::class);
-
-        /** @var IRequest */
-        $request = $container->get(IRequest::class);
+        $this->l = $container->query(IL10N::class);
+        $this->tokenService = $container->query(TokenService::class);
+        $this->url = $container->query(IURLGenerator::class);
+        $this->config = $container->query(IConfig::class);
+        $request = $container->query(IRequest::class);
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -112,6 +114,12 @@ class Application extends App implements IBootstrap
                         exit;
                     }
                 });
+            }
+
+            if (!$this->tokenService->refreshTokens()) {
+                $userSession->logout();
+
+                return;
             }
 
             // Hide password change form

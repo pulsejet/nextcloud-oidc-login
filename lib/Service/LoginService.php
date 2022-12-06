@@ -211,13 +211,28 @@ class LoginService
         }
     }
 
+    public function storeTokens(object $tokenResponse)
+    {
+        $this->session->set('oidc_access_token', $tokenResponse->access_token);
+        $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
+
+        $now = time();
+        $accessTokenExpiresIn = $tokenResponse->expires_in + $now;
+        $refreshTokenExpiresIn = $now + $tokenResponse->refresh_expires_in - 5;
+
+        $this->session->set('oidc_access_token_expires_in', $accessTokenExpiresIn);
+        $this->session->set('oidc_refresh_token_expires_in', $refreshTokenExpiresIn);
+    }
+
     /**
      * If the LDAP backend interface is enabled, make user the
      * user actually exists in LDAP and return the uid.
      *
-     * @return null|string LDAP user uid or null if not found
+     * @param null|string $ldapUid
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
+     *
+     * @return null|string LDAP user uid or null if not found
      */
     private function getLDAPUserUid(?string $ldapUid): ?string
     {
@@ -271,9 +286,11 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @return IUser Created user object
+     * @param string $uid
      *
      * @throws LoginException If oidc_login_disable_registration is true
+     *
+     * @return false|\OCP\IUser User object if created
      */
     private function createUser(string $uid, string $password): IUser
     {
