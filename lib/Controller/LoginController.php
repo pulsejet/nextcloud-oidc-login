@@ -87,6 +87,8 @@ class LoginController extends Controller
             // Authenticate
             $oidc->authenticate();
 
+            $this->loginService->storeTokens($oidc->getTokenResponse());
+
             $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
                 // Get user information from ID Token
