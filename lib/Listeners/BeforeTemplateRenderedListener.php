@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\EcloudAccounts\Listeners;
+namespace OCA\OIDCLogin\Listeners;
 
 use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
@@ -35,6 +35,7 @@ class BeforeTemplateRenderedListener implements IEventListener
 
     public function handle(Event $event): void
     {
+        // If user not logged in or not an oidc session, nothing to do
         if (!($event instanceof BeforeTemplateRenderedEvent) || !$this->userSession->isLoggedIn() || !$this->session->exists('is_oidc')) {
             return;
         }
