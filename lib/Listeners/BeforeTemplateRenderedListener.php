@@ -25,7 +25,7 @@ class BeforeTemplateRenderedListener implements IEventListener
     /** @var ISession */
     private $session;
 
-    public function __construct($appName, IUserSession $userSession, ISession $session)
+    public function __construct($appName, IUserSession $userSession, TokenService $tokenService, ISession $session)
     {
         $this->appName = $appName;
         $this->userSession = $userSession;
