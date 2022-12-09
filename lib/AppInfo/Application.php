@@ -30,7 +30,6 @@ class Application extends App implements IBootstrap
 
     private $appName = 'oidc_login';
 
-    private $tokenService;
 
     public function __construct()
     {
@@ -66,7 +65,6 @@ class Application extends App implements IBootstrap
     {
         $container = $context->getAppContainer();
         $this->l = $container->query(IL10N::class);
-        $this->tokenService = $container->query(TokenService::class);
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
         $request = $container->query(IRequest::class);
@@ -116,11 +114,6 @@ class Application extends App implements IBootstrap
                 });
             }
 
-            if (!$this->tokenService->refreshTokens()) {
-                $userSession->logout();
-
-                return;
-            }
 
             // Hide password change form
             if ($this->config->getSystemValue('oidc_login_hide_password_form', false)) {

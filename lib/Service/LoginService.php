@@ -65,28 +65,7 @@ class LoginService
             ? \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
     }
 
-    public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
-    {
-        $oidc = \OC::$server->get(OpenIDConnectClient::class);
-        $oidc->setRedirectURL($callbackUrl);
-
-        // set TLS development mode
-        $oidc->setVerifyHost($this->config->getSystemValue('oidc_login_tls_verify', true));
-        $oidc->setVerifyPeer($this->config->getSystemValue('oidc_login_tls_verify', true));
-
-        // Set OpenID Connect Scope
-        $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
-        $oidc->addScope($scope);
-
-        return $oidc;
-    }
-
-    /**
-     * Log in the user using the provided profile.
-     *
-     * @return array [\OCP\IUser user, string password]
-     */
-    public function login(array $profile): array
+    public function login($profile, $userSession, $request)
     {
         // Flatten the profile array
         $profile = $this->flatten($profile);
@@ -209,19 +188,6 @@ class LoginService
             $method->setAccessible(true);
             $method->invoke($userSession, true, false);
         }
-    }
-
-    public function storeTokens(object $tokenResponse)
-    {
-        $this->session->set('oidc_access_token', $tokenResponse->access_token);
-        $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
-
-        $now = time();
-        $accessTokenExpiresIn = $tokenResponse->expires_in + $now;
-        $refreshTokenExpiresIn = $now + $tokenResponse->refresh_expires_in - 5;
-
-        $this->session->set('oidc_access_token_expires_in', $accessTokenExpiresIn);
-        $this->session->set('oidc_refresh_token_expires_in', $refreshTokenExpiresIn);
     }
 
     /**

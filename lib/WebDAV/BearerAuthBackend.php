@@ -5,6 +5,7 @@ namespace OCA\OIDCLogin\WebDAV;
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\Defaults;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
@@ -25,6 +26,9 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
     private LoginService $loginService;
     private string $principalPrefix;
 
+    /** @var TokenService */
+    private $tokenService;    
+
     /**
      * @param string $principalPrefix
      */
@@ -35,6 +39,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         IConfig $config,
         LoggerInterface $logger,
         LoginService $loginService,
+        TokenService $tokenService,
         $principalPrefix = 'principals/users/'
     ) {
         $this->appName = $appName;
@@ -43,6 +48,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $this->config = $config;
         $this->logger = $logger;
         $this->loginService = $loginService;
+        $this->tokenService = $tokenService;
         $this->principalPrefix = $principalPrefix;
 
         // setup realm
@@ -107,7 +113,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      */
     private function login(string $bearerToken)
     {
-        $client = $this->loginService->createOIDCClient();
+        $client = $this->tokenService->createOIDCClient();
         if (null === $client) {
             throw new \Exception("Couldn't create OIDC client!");
         }

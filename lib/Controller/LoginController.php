@@ -4,6 +4,7 @@ namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -20,11 +21,35 @@ use OCP\IUserSession;
 
 class LoginController extends Controller
 {
-    private IConfig $config;
-    private IURLGenerator $urlGenerator;
-    private IUserSession $userSession;
-    private ISession $session;
-    private LoginService $loginService;
+    /** @var IConfig */
+    private $config;
+
+    /** @var IURLGenerator */
+    private $urlGenerator;
+
+    /** @var IUserManager */
+    private $userManager;
+
+    /** @var IUserSession */
+    private $userSession;
+
+    /** @var IGroupManager */
+    private $groupManager;
+
+    /** @var ISession */
+    private $session;
+
+    /** @var LoginService */
+    private $loginService;
+
+    /** @var TokenService */
+    private $tokenService;
+
+    /** @var IL10N */
+    private $l;
+
+    /** @var \OCA\Files_External\Service\GlobalStoragesService */
+    private $storagesService;
 
     public function __construct(
         string $appName,
@@ -33,7 +58,10 @@ class LoginController extends Controller
         IURLGenerator $urlGenerator,
         IUserSession $userSession,
         ISession $session,
-        LoginService $loginService
+        IL10N $l,
+        LoginService $loginService,
+        TokenService $tokenService,
+        $storagesService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -41,6 +69,8 @@ class LoginController extends Controller
         $this->userSession = $userSession;
         $this->session = $session;
         $this->loginService = $loginService;
+        $this->tokenService = $tokenService;
+        $this->storagesService = $storagesService;
     }
 
     #[PublicPage]
@@ -52,7 +82,7 @@ class LoginController extends Controller
 
         try {
             // Construct new client
-            $oidc = $this->loginService->createOIDCClient($callbackUrl);
+            $oidc = $this->tokenService->createOIDCClient($callbackUrl);
 
             // Authenticate
             $oidc->authenticate();
@@ -60,6 +90,8 @@ class LoginController extends Controller
             // Get user info
             $profile = $oidc->getProfile();
             $this->loginService->storeTokens($oidc->getTokenResponse());
+            $tokenResponse = $oidc->getTokenResponse();
+            $this->tokenService->storeTokens($tokenResponse);
 
             $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
