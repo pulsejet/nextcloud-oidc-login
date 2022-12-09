@@ -40,7 +40,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
     private $loginService;
 
     /** @var TokenService */
-    private $tokenService;    
+    private $tokenService;
 
     /**
      * @param string $principalPrefix
