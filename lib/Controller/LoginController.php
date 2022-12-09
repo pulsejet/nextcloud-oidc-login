@@ -3,6 +3,7 @@
 namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Service\LoginService;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -38,6 +39,9 @@ class LoginController extends Controller
     /** @var LoginService */
     private $loginService;
 
+    /** @var TokenService */
+    private $tokenService;
+
     /** @var IL10N */
     private $l;
 
@@ -55,6 +59,7 @@ class LoginController extends Controller
         ISession $session,
         IL10N $l,
         LoginService $loginService,
+        TokenService $tokenService,
         $storagesService
     ) {
         parent::__construct($appName, $request);
@@ -66,6 +71,7 @@ class LoginController extends Controller
         $this->session = $session;
         $this->l = $l;
         $this->loginService = $loginService;
+        $this->tokenService = $tokenService;
         $this->storagesService = $storagesService;
     }
 
@@ -82,12 +88,13 @@ class LoginController extends Controller
 
         try {
             // Construct new client
-            $oidc = $this->loginService->createOIDCClient($callbackUrl);
+            $oidc = $this->tokenService->createOIDCClient($callbackUrl);
 
             // Authenticate
             $oidc->authenticate();
 
-            $this->loginService->storeTokens($oidc->getTokenResponse());
+            $tokenResponse = $oidc->getTokenResponse();
+            $this->tokenService->storeTokens($tokenResponse);
 
             $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {

@@ -4,7 +4,6 @@ namespace OCA\OIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
-use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -73,26 +72,6 @@ class LoginService
         $this->logger = $logger;
         $this->storagesService = $storagesService;
         $this->attr = new AttributeMap($config);
-    }
-
-    public function createOIDCClient($callbackUrl = '')
-    {
-        $oidc = new OpenIDConnectClient(
-            $this->session,
-            $this->config,
-            $this->appName,
-        );
-        $oidc->setRedirectURL($callbackUrl);
-
-        // set TLS development mode
-        $oidc->setVerifyHost($this->config->getSystemValue('oidc_login_tls_verify', true));
-        $oidc->setVerifyPeer($this->config->getSystemValue('oidc_login_tls_verify', true));
-
-        // Set OpenID Connect Scope
-        $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
-        $oidc->addScope($scope);
-
-        return $oidc;
     }
 
     public function login($profile, $userSession, $request)
@@ -190,19 +169,6 @@ class LoginService
         // Update the user's last login timestamp, since the conditions above tend to cause the
         // completeLogin() call above to skip doing so.
         $user->updateLastLoginTimestamp();
-    }
-
-    public function storeTokens(object $tokenResponse)
-    {
-        $this->session->set('oidc_access_token', $tokenResponse->access_token);
-        $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
-
-        $now = time();
-        $accessTokenExpiresIn = $tokenResponse->expires_in + $now;
-        $refreshTokenExpiresIn = $now + $tokenResponse->refresh_expires_in - 5;
-
-        $this->session->set('oidc_access_token_expires_in', $accessTokenExpiresIn);
-        $this->session->set('oidc_refresh_token_expires_in', $refreshTokenExpiresIn);
     }
 
     /**
