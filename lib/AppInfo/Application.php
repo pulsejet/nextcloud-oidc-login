@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
+use OCA\OIDCLogin\Listeners\BeforeTemplateRenderedListener;
 use OCA\OIDCLogin\OIDCLoginOption;
 use OCA\OIDCLogin\WebDAV\BasicAuthBackend;
 use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
@@ -13,6 +14,7 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -29,7 +31,6 @@ class Application extends App implements IBootstrap
     protected IConfig $config;
 
     private $appName = 'oidc_login';
-
 
     public function __construct()
     {
@@ -59,6 +60,8 @@ class Application extends App implements IBootstrap
             'OCA\DAV\Connector\Sabre::addPlugin',
             BasicAuthBackend::class
         );
+
+        $context->registerEventListener(BeforeTemplateRenderedEvent::class, BeforeTemplateRenderedListener::class);
     }
 
     public function boot(IBootContext $context): void
@@ -113,7 +116,6 @@ class Application extends App implements IBootstrap
                     }
                 });
             }
-
 
             // Hide password change form
             if ($this->config->getSystemValue('oidc_login_hide_password_form', false)) {
