@@ -28,7 +28,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
     /** @var TokenService */
     private $tokenService;
 
-
     /**
      * @param string $principalPrefix
      */
