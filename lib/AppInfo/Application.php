@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
-use OCA\OIDCLogin\Listeners\BeforeTemplateRenderedListener;
 use OCA\OIDCLogin\OIDCLoginOption;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -31,6 +30,10 @@ class Application extends App implements IBootstrap
 
     /** @var Config */
     protected $config;
+
+    /** @var TokenService */
+    private $tokenService;
+
     private $appName = 'oidc_login';
 
     public function __construct()
@@ -69,8 +72,6 @@ class Application extends App implements IBootstrap
             'OCA\DAV\Connector\Sabre::addPlugin',
             '\OCA\OIDCLogin\WebDAV\BasicAuthBackend'
         );
-
-        $context->registerEventListener(BeforeTemplateRenderedEvent::class, BeforeTemplateRenderedListener::class);
     }
 
     public function boot(IBootContext $context): void
@@ -79,6 +80,7 @@ class Application extends App implements IBootstrap
         $this->l = $container->query(IL10N::class);
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
+        $this->tokenService = $container->query(TokenService::class);
         $request = $container->query(IRequest::class);
 
         // Check if automatic redirection is enabled
@@ -123,6 +125,10 @@ class Application extends App implements IBootstrap
 
                     exit;
                 });
+            }
+
+            if (!$this->tokenService->refreshTokens()) {
+                $userSession->logout();
             }
 
             // Hide password change form
