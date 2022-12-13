@@ -74,7 +74,7 @@ class TokenService
         $refreshTokenExpiresIn = $this->session->get('oidc_refresh_token_expires_in');
         $refreshToken = $this->session->get('oidc_refresh_token');
         // If refresh token doesn't exist or refresh token has expired
-        if (!$refreshToken || (!empty($refreshTokenExpiresIn) && $now > $refreshTokenExpiresIn)) {
+        if (empty($refreshToken) || (!empty($refreshTokenExpiresIn) && $now > $refreshTokenExpiresIn)) {
             return false;
         }
 
