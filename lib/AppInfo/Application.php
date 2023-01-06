@@ -119,7 +119,8 @@ class Application extends App implements IBootstrap
                 });
             }
 
-            if (!$this->tokenService->refreshTokens()) {
+            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
+            if ($refreshTokensEnabled && !$this->tokenService->refreshTokens()) {
                 $userSession->logout();
             }
 
