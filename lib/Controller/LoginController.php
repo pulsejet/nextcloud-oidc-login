@@ -94,8 +94,11 @@ class LoginController extends Controller
             $oidc->authenticate();
 
             $tokenResponse = $oidc->getTokenResponse();
-            $this->tokenService->storeTokens($tokenResponse);
+            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
 
+            if ($refreshTokensEnabled) {
+                $this->tokenService->storeTokens($tokenResponse);
+            }
             $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
                 // Get user information from ID Token
