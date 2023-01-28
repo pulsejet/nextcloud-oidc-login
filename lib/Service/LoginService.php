@@ -129,11 +129,19 @@ class LoginService
 
         // Get user with fallback
         $user = $this->userManager->get($uid);
-        $userPassword = '';
+
+        // Password can be empty unless first login.
+        // On first login, we cannot use a token to authenticate the user
+        // as this does not trigger creation of the user's skeleton files
+        $password = '';
 
         // Create user if not existing
         if (null === $user) {
-            $user = $this->createUser($uid);
+            // Generate random password of 30 characters
+            $password = substr(base64_encode(random_bytes(64)), 0, 30);
+
+            // Create user. This will throw if creation is not permitted.
+            $user = $this->createUser($uid, $password);
         }
 
         // Set home directory unless proxying for LDAP
@@ -153,20 +161,20 @@ class LoginService
             $this->updateUserGroups($user, $groupNames, $profile);
         }
 
-        $this->completeLogin($user, $userPassword, $userSession, $request);
+        $this->completeLogin($user, $password, $userSession, $request);
 
-        return [$user, $userPassword];
+        return [$user, $password];
     }
 
     /**
      * Log in the user to the session using the provided credentials.
      *
-     * @param IUser        $user         User object (should be non-null)
-     * @param string       $userPassword (empty unless first login)
+     * @param IUser        $user        User object (should be non-null)
+     * @param string       $password    (empty unless first login)
      * @param IUserSession $userSession
      * @param IRequest     $request
      */
-    public function completeLogin($user, $userPassword, $userSession, $request)
+    public function completeLogin($user, $password, $userSession, $request)
     {
         /* On the v1 route /remote.php/webdav, a default nextcloud backend
          * tries and fails to authenticate users, then close the session.
@@ -183,8 +191,8 @@ class LoginService
 
         $userSession->completeLogin($user, [
             'loginName' => $user->getUID(),
-            'password' => $userPassword,
-            'token' => empty($userPassword) ? $token : null,
+            'password' => $password,
+            'token' => empty($password) ? $token : null,
         ], false);
 
         // Update the user's last login timestamp, since the conditions above tend to cause the
@@ -257,20 +265,19 @@ class LoginService
      * Create a user if we are allowed to do that.
      *
      * @param string $uid
+     * @param string $password
      *
      * @return false|\OCP\IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
      */
-    private function createUser($uid)
+    private function createUser($uid, $password)
     {
         if ($this->config->getSystemValue('oidc_login_disable_registration', true)) {
             throw new LoginException($this->l->t('Auto creating new users is disabled'));
         }
 
-        $userPassword = substr(base64_encode(random_bytes(64)), 0, 30);
-
-        return $this->userManager->createUser($uid, $userPassword);
+        return $this->userManager->createUser($uid, $password);
     }
 
     /**
