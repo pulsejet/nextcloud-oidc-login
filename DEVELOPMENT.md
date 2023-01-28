@@ -32,6 +32,7 @@ oidc:
 ```
 
 In your `config.php`, you need:
+
 ```php
 'oidc_login_provider_url' => 'http://oidc:9000/',
 'oidc_login_client_id' => 'nextcloud',
@@ -41,11 +42,12 @@ In your `config.php`, you need:
   'id' => 'pid',
   'name' => 'pid',
 ),
-'oidc_login_disable_registration' => true,  // allows creation of new users
+'oidc_login_disable_registration' => false,  // allows creation of new users
 'oidc_login_tls_verify' => false,           // allows self-signed certificates
 ```
 
 Finally, update `/etc/hosts` to point `oidc` to `localhost`:
+
 ```bash
 echo "127.0.0.1 oidc" | sudo tee -a /etc/hosts
 ```
