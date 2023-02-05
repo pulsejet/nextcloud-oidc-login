@@ -97,6 +97,7 @@ class Application extends App implements IBootstrap
             // Disable password confirmation for user
             $session->set('last-password-confirm', $container->get(ITimeFactory::class)->getTime());
 
+            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
@@ -112,14 +113,18 @@ class Application extends App implements IBootstrap
                     $session->close();
                     if (!$this->isApiRequest()) {
                         header('Clear-Site-Data: "cache", "storage"');
+
+                        if ($refreshTokensEnabled) {
+                            $logoutUrl = $this->tokenService->getLogoutUrl();
+                        }
+
                         header('Location: '.$logoutUrl);
 
                         exit;
-                    }
+                 }
                 });
             }
 
-            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
             if ($refreshTokensEnabled && !$this->tokenService->refreshTokens()) {
                 $userSession->logout();
             }
