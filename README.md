@@ -111,6 +111,7 @@ $CONFIG = array (
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',
         'groups' => 'ownCloudGroups',
+        'roles' => 'realm_access_roles',
         'photoURL' => 'picture',
         'is_admin' => 'ownCloudAdmin',
     ),
@@ -125,6 +126,14 @@ $CONFIG = array (
     // Must be specified as an array of groups that are allowed to access Nextcloud.
     // e.g. 'oidc_login_allowed_groups' => array('group1', 'group2')
     'oidc_login_allowed_groups' => null,
+
+    // Allow only users in configured role(s) to access Nextcloud. In case the user
+    // is not assigned to this role (read from oidc_login_attributes) the login
+    // will not be allowed for this user.
+    //
+    // Must be specified as an array of roles that are allowed to access Nextcloud.
+    // e.g. 'oidc_login_allowed_roles' => array('role1', 'role2')
+    'oidc_login_allowed_roles' => null,
 
     // Use external storage instead of a symlink to the home directory
     // Requires the files_external app to be enabled

@@ -27,6 +27,9 @@ class AttributeMap
     /** @var string Array or space separated string of NC groups for the user */
     private $_groups;
 
+    /** @var string Array or space separated string of roles for the user */
+    private $_roles;
+
     /** @var string The URL of the user avatar. */
     private $_photoUrl;
 
@@ -44,6 +47,7 @@ class AttributeMap
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
             'groups' => 'ownCloudGroups',
+            'roles' => 'roles',
             'photoURL' => 'picture',
         ];
         $attr = array_merge($defattr, $confattr);
@@ -55,6 +59,7 @@ class AttributeMap
         $this->_home = $attr['home'];
         $this->_ldapUid = $attr['ldap_uid'];
         $this->_groups = $attr['groups'];
+        $this->_roles = $attr['roles'];
         $this->_photoUrl = $attr['photoURL'];
 
         // Optional attributes
@@ -155,6 +160,25 @@ class AttributeMap
     }
 
     /**
+     * Get roles from profile.
+     *
+     * @param mixed $profile
+     *
+     * @return null|array
+     */
+    public function roles(&$profile)
+    {
+        $roles = self::get($this->_roles, $profile);
+
+        // Explode by space if string
+        if (\is_string($roles)) {
+            $roles = array_filter(explode(' ', $roles));
+        }
+
+        return $roles;
+    }
+
+    /**
      * Get photo URL from profile.
      *
      * @param mixed $profile
@@ -186,6 +210,16 @@ class AttributeMap
     public function hasGroups(&$profile)
     {
         return \array_key_exists($this->_groups, $profile);
+    }
+
+    /**
+     * Returns whether the OIDC response has the roles field in it.
+     *
+     * @param array $profile
+     */
+    public function hasRoles(&$profile)
+    {
+        return \array_key_exists($this->_roles, $profile);
     }
 
     /**

@@ -127,6 +127,14 @@ class LoginService
             }
         }
 
+        // Check if user has an allowed role
+        if ($allowedRoles = $this->config->getSystemValue('oidc_login_allowed_roles', null)) {
+            $roleNames = $this->getRoleNames($profile);
+            if (empty(array_intersect($allowedRoles, $roleNames))) {
+                throw new LoginException($this->l->t('Access to this service is not allowed because you do not have one of the allowed roles. If you think this is an error, contact your administrator.'));
+            }
+        }
+
         // Get user with fallback
         $user = $this->userManager->get($uid);
 
@@ -394,6 +402,38 @@ class LoginService
             }
         }
     }
+
+
+    /**
+     * Get list of roles of user from OIDC response.
+     *
+     * @param array $profile Profile attribute values
+     *
+     * @return string[] List of roles
+     */
+    private function getRoleNames(&$profile)
+    {
+        $roleNames = [];
+        // Add user's roles from profile
+        if ($this->attr->hasRoles($profile)) {
+            // Get roles names
+            $profileRoles = $this->attr->roles($profile);
+
+            // Make sure role names is an array
+            if (!\is_array($profileRoles)) {
+                throw new LoginException('Roles field must be an array, '.\gettype($profileRoles).' given');
+            }
+
+            // Add to all roles
+            $roleNames = array_merge($roleNames, $profileRoles);
+        }
+
+        // Remove duplicate roles
+        $roleNames = array_unique($roleNames);
+
+        return $roleNames;
+    }
+
 
     /**
      * Get list of groups of user from OIDC response.
