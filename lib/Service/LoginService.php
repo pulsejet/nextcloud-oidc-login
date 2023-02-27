@@ -403,7 +403,6 @@ class LoginService
         }
     }
 
-
     /**
      * Get list of roles of user from OIDC response.
      *
@@ -433,7 +432,6 @@ class LoginService
 
         return $roleNames;
     }
-
 
     /**
      * Get list of groups of user from OIDC response.
