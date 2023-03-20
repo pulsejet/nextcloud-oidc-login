@@ -381,14 +381,22 @@ class LoginService
                 curl_setopt($curl, CURLOPT_HEADER, false);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
-                $raw = curl_exec($curl);
-                curl_close($curl);
-
-                $image = new \OC_Image();
-                $image->loadFromData($raw);
 
                 $avatar = $this->avatarManager->getAvatar($user->getUid());
-                $avatar->set($image);
+                if ($avatar) {
+                    $last_modified = $avatar->getFile(64)->getMTime();
+                    $formatted_date = date('D, d M Y H:i:s \G\M\T', $last_modified);
+                    curl_setopt($curl, CURLOPT_HTTPHEADER, ["If-Modified-Since: {$formatted_date}"]);
+                }
+                $raw = curl_exec($curl);
+
+                if (200 === curl_getinfo($curl, CURLINFO_HTTP_CODE)) {
+                    $image = new \OC_Image();
+                    $image->loadFromData($raw);
+
+                    $avatar->set($image);
+                }
+                curl_close($curl);
             } catch (\Exception $e) {
                 $this->logger->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
