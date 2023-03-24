@@ -27,8 +27,8 @@ class AttributeMap
     /** @var string Array or space separated string of NC groups for the user */
     private $_groups;
 
-    /** @var string Array or space separated string of roles for the user */
-    private $_roles;
+    /** @var string Array or space separated string of login filter values for the user */
+    private $_login_filter;
 
     /** @var string The URL of the user avatar. */
     private $_photoUrl;
@@ -47,7 +47,7 @@ class AttributeMap
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
             'groups' => 'ownCloudGroups',
-            'roles' => 'roles',
+            'login_filter' => 'roles',
             'photoURL' => 'picture',
         ];
         $attr = array_merge($defattr, $confattr);
@@ -59,7 +59,7 @@ class AttributeMap
         $this->_home = $attr['home'];
         $this->_ldapUid = $attr['ldap_uid'];
         $this->_groups = $attr['groups'];
-        $this->_roles = $attr['roles'];
+        $this->_login_filter = $attr['login_filter'];
         $this->_photoUrl = $attr['photoURL'];
 
         // Optional attributes
@@ -160,22 +160,22 @@ class AttributeMap
     }
 
     /**
-     * Get roles from profile.
+     * Get login_filter from profile.
      *
      * @param mixed $profile
      *
      * @return null|array
      */
-    public function roles(&$profile)
+    public function login_filter(&$profile)
     {
-        $roles = self::get($this->_roles, $profile);
+        $login_filter = self::get($this->_login_filter, $profile);
 
         // Explode by space if string
-        if (\is_string($roles)) {
-            $roles = array_filter(explode(' ', $roles));
+        if (\is_string($login_filter)) {
+            $login_filter = array_filter(explode(' ', $login_filter));
         }
 
-        return $roles;
+        return $login_filter;
     }
 
     /**
@@ -213,13 +213,13 @@ class AttributeMap
     }
 
     /**
-     * Returns whether the OIDC response has the roles field in it.
+     * Returns whether the OIDC response has the login_filter field in it.
      *
      * @param array $profile
      */
-    public function hasRoles(&$profile)
+    public function hasLoginFilter(&$profile)
     {
-        return \array_key_exists($this->_roles, $profile);
+        return \array_key_exists($this->_login_filter, $profile);
     }
 
     /**

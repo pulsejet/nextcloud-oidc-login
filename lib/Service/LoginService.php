@@ -119,6 +119,7 @@ class LoginService
             $uid = md5($uid);
         }
 
+        // DEPRECATED: This code can be removed once the 'oidc_login_allowed_groups' feature is removed
         // Check if user is in allowed groups
         if ($allowedGroups = $this->config->getSystemValue('oidc_login_allowed_groups', null)) {
             $groupNames = $this->getGroupNames($profile);
@@ -127,11 +128,11 @@ class LoginService
             }
         }
 
-        // Check if user has an allowed role
-        if ($allowedRoles = $this->config->getSystemValue('oidc_login_allowed_roles', null)) {
-            $roleNames = $this->getRoleNames($profile);
-            if (empty(array_intersect($allowedRoles, $roleNames))) {
-                throw new LoginException($this->l->t('Access to this service is not allowed because you do not have one of the allowed roles. If you think this is an error, contact your administrator.'));
+        // Check if user has an allowed login filter value
+        if ($allowedLoginFilterValues = $this->config->getSystemValue('oidc_login_filter_allowed_values', null)) {
+            $loginFilterValues = $this->getLoginFilterValues($profile);
+            if (empty(array_intersect($allowedLoginFilterValues, $loginFilterValues))) {
+                throw new LoginException($this->l->t('Access to this service is not allowed because you do not have one of the allowed login filter values. If you think this is an error, contact your administrator.'));
             }
         }
 
@@ -404,33 +405,33 @@ class LoginService
     }
 
     /**
-     * Get list of roles of user from OIDC response.
+     * Get list of login filter values of user from OIDC response.
      *
      * @param array $profile Profile attribute values
      *
-     * @return string[] List of roles
+     * @return string[] List of login filter values
      */
-    private function getRoleNames(&$profile)
+    private function getLoginFilterValues(&$profile)
     {
-        $roleNames = [];
-        // Add user's roles from profile
-        if ($this->attr->hasRoles($profile)) {
-            // Get roles names
-            $profileRoles = $this->attr->roles($profile);
+        $loginFilterValues = [];
+        // Add user's login filter values from profile
+        if ($this->attr->hasLoginFilter($profile)) {
+            // Get login filter values
+            $profileLoginFilterValues = $this->attr->login_filter($profile);
 
-            // Make sure role names is an array
-            if (!\is_array($profileRoles)) {
-                throw new LoginException('Roles field must be an array, '.\gettype($profileRoles).' given');
+            // Make sure login filter allowed values names is an array
+            if (!\is_array($profileLoginFilterValues)) {
+                throw new LoginException('Login filter values field must be an array, '.\gettype($profileLoginFilterValues).' given');
             }
 
-            // Add to all roles
-            $roleNames = array_merge($roleNames, $profileRoles);
+            // Add to all login filter values
+            $loginFilterValues = array_merge($loginFilterValues, $profileLoginFilterValues);
         }
 
-        // Remove duplicate roles
-        $roleNames = array_unique($roleNames);
+        // Remove duplicate login filter values
+        $loginFilterValues = array_unique($loginFilterValues);
 
-        return $roleNames;
+        return $loginFilterValues;
     }
 
     /**
