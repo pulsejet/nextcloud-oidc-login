@@ -119,11 +119,20 @@ class LoginService
             $uid = md5($uid);
         }
 
+        // DEPRECATED: This code can be removed once the 'oidc_login_allowed_groups' feature is removed
         // Check if user is in allowed groups
         if ($allowedGroups = $this->config->getSystemValue('oidc_login_allowed_groups', null)) {
             $groupNames = $this->getGroupNames($profile);
             if (empty(array_intersect($allowedGroups, $groupNames))) {
                 throw new LoginException($this->l->t('Access to this service is not allowed because you are not member of the allowed groups. If you think this is an error, contact your administrator.'));
+            }
+        }
+
+        // Check if user has an allowed login filter value
+        if ($allowedLoginFilterValues = $this->config->getSystemValue('oidc_login_filter_allowed_values', null)) {
+            $loginFilterValues = $this->getLoginFilterValues($profile);
+            if (empty(array_intersect($allowedLoginFilterValues, $loginFilterValues))) {
+                throw new LoginException($this->l->t('Access to this service is not allowed because you do not have one of the allowed login filter values. If you think this is an error, contact your administrator.'));
             }
         }
 
@@ -401,6 +410,36 @@ class LoginService
                 $this->logger->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
         }
+    }
+
+    /**
+     * Get list of login filter values of user from OIDC response.
+     *
+     * @param array $profile Profile attribute values
+     *
+     * @return string[] List of login filter values
+     */
+    private function getLoginFilterValues(&$profile)
+    {
+        $loginFilterValues = [];
+        // Add user's login filter values from profile
+        if ($this->attr->hasLoginFilter($profile)) {
+            // Get login filter values
+            $profileLoginFilterValues = $this->attr->login_filter($profile);
+
+            // Make sure login filter allowed values names is an array
+            if (!\is_array($profileLoginFilterValues)) {
+                throw new LoginException('Login filter values field must be an array, '.\gettype($profileLoginFilterValues).' given');
+            }
+
+            // Add to all login filter values
+            $loginFilterValues = array_merge($loginFilterValues, $profileLoginFilterValues);
+        }
+
+        // Remove duplicate login filter values
+        $loginFilterValues = array_unique($loginFilterValues);
+
+        return $loginFilterValues;
     }
 
     /**
