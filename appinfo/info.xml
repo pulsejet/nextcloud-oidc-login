@@ -18,7 +18,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Automatic redirection from the nextcloud login page to the Identity Provider login page
 - WebDAV endpoints `Bearer` and `Basic` authentication
 ]]></description>
-    <version>2.5.0</version>
+    <version>2.5.1</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
