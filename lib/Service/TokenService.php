@@ -5,9 +5,9 @@ namespace OCA\OIDCLogin\Service;
 use Exception;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCP\IConfig;
+use OCP\ILogger;
 use OCP\ISession;
 use OCP\IURLGenerator;
-use OCP\ILogger;
 
 class TokenService
 {
@@ -23,9 +23,7 @@ class TokenService
     /** @var IURLGenerator */
     private $urlGenerator;
 
-    /** @var ILogger */
     private ILogger $logger;
-
 
     public function __construct(
         $appName,
@@ -74,40 +72,45 @@ class TokenService
         $accessTokenExpiresAt = $this->session->get('oidc_access_token_expires_at');
         $now = time();
         // If access token hasn't expired yet
-        $this->logger->debug("checking if token should be refreshed", ["expires" => $accessTokenExpiresAt]);
+        $this->logger->debug('checking if token should be refreshed', ['expires' => $accessTokenExpiresAt]);
 
         if (!empty($accessTokenExpiresAt) && $now < $accessTokenExpiresAt) {
-            $this->logger->debug("no token expiration or not yet expired");
+            $this->logger->debug('no token expiration or not yet expired');
+
             return true;
         }
 
         $refreshToken = $this->session->get('oidc_refresh_token');
         // If refresh token doesn't exist or refresh token has expired
         if (empty($refreshToken)) {
-            $this->logger->debug("refresh token not found");
+            $this->logger->debug('refresh token not found');
+
             return false;
         }
 
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
 
         // Refresh the tokens, return false on failure
-        $this->logger->debug("refreshing token");
+        $this->logger->debug('refreshing token');
+
         try {
             $oidc = $this->createOIDCClient($callbackUrl);
             $tokenResponse = $oidc->refreshToken($refreshToken);
             $this->storeTokens($tokenResponse);
 
             if ($this->session->get('oidc_logout_url')) {
-                $this->logger->debug("updating logout url");
+                $this->logger->debug('updating logout url');
                 $oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false);
                 $logoutUrl = $oidc->getEndSessionUrl($oidc_login_logout_url);
                 $this->session->set('oidc_logout_url', $logoutUrl);
             }
 
-            $this->logger->debug("token refreshed");
+            $this->logger->debug('token refreshed');
+
             return true;
         } catch (Exception $e) {
-            $this->logger->error("token refresh failed", ['exception' => $e]);
+            $this->logger->error('token refresh failed', ['exception' => $e]);
+
             return false;
         }
     }
@@ -115,8 +118,8 @@ class TokenService
     public function storeTokens(object $tokenResponse): void
     {
         $oldAccessToken = $this->session->get('oidc_access_token');
-        $this->logger->debug("old access token: " . $oldAccessToken);
-        $this->logger->debug("new access token: " . $tokenResponse->access_token);
+        $this->logger->debug('old access token: '.$oldAccessToken);
+        $this->logger->debug('new access token: '.$tokenResponse->access_token);
 
         $this->session->set('oidc_access_token', $tokenResponse->access_token);
         $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
@@ -127,8 +130,8 @@ class TokenService
         $this->session->set('oidc_access_token_expires_at', $accessTokenExpiresIn);
     }
 
-    public function getLogoutUrl() {
-        
+    public function getLogoutUrl()
+    {
         return $this->session->get('oidc_logout_url');
     }
 }
