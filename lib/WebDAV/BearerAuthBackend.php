@@ -66,9 +66,6 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $this->realm = $defaults->getName();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function validateBearerToken($bearerToken)
     {
         \OC_Util::setupFS(); // login hooks may need early access to the filesystem

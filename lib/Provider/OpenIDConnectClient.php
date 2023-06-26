@@ -80,9 +80,6 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         $this->wellKnownCachingTime = $this->config->getSystemValue('oidc_login_well_known_caching_time', self::DEFAULT_WELL_KNOWN_CACHING_TIME);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function verifyJWTsignature($jwt)
     {
         try {
@@ -200,49 +197,31 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         return $end_session_endpoint;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function getSessionKey($key)
     {
         return $this->session->get($key);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function setSessionKey($key, $value)
     {
         $this->session->set($key, $value);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function unsetSessionKey($key)
     {
         $this->session->remove($key);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function startSession()
     {
         $this->session->set('is_oidc', 1);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function commitSession()
     {
         $this->startSession();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function fetchURL($url, $post_body = null, $headers = [])
     {
         // this must be an exact match as for IdentityServer the JWKS uri is a path below .well-knowm
