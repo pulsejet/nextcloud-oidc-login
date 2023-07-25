@@ -126,7 +126,16 @@ class Application extends App implements IBootstrap
             }
 
             if ($refreshTokensEnabled && !$this->tokenService->refreshTokens()) {
-                $userSession->logout();
+                // See if session is active if autologin is enabled; else logout
+                if ($useLoginRedirect) {
+                    $loginLink = OIDCLoginOption::getLoginLink($request, $this->url);
+                    header('Location: '.$loginLink);
+
+                    exit;
+                } else {
+                    $userSession->logout();
+
+                }
             }
 
             // Hide password change form
