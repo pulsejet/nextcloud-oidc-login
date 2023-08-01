@@ -97,10 +97,18 @@ class Application extends App implements IBootstrap
             // Disable password confirmation for user
             $session->set('last-password-confirm', $container->get(ITimeFactory::class)->getTime());
 
-            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
+            $refreshTokensEnabled = $session->exists('oidc_refresh_tokens_enabled');
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
-            if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
+             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
+                $userSession->listen('\OC\User', 'logout', function () use (&$logoutUrl, $refreshTokensEnabled, $session) {
+                    if ($refreshTokensEnabled) {
+                        // Refresh tokens before logout
+                        $this->tokenService->refreshTokens();
+                        $logoutUrl = $session->get('oidc_logout_url');
+                    }
+                });
+
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->get(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
@@ -109,41 +117,30 @@ class Application extends App implements IBootstrap
 
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.
+                    $this->loginService->unsetOidcRememberMeCookie();
+
                     $session->set('clearingExecutionContexts', '1');
                     $session->close();
                     if (!$this->isApiRequest()) {
                         header('Clear-Site-Data: "cache", "storage"');
-
-                        if ($refreshTokensEnabled) {
-                            $logoutUrl = $this->tokenService->getLogoutUrl();
-                        }
-
                         header('Location: '.$logoutUrl);
 
                         exit;
-                 }
+                    }
                 });
             }
 
             if ($refreshTokensEnabled && !$this->tokenService->refreshTokens()) {
-                // See if session is active if autologin is enabled; else logout
-                if ($useLoginRedirect) {
-                    $loginLink = OIDCLoginOption::getLoginLink($request, $this->url);
-                    header('Location: '.$loginLink);
-
-                    exit;
-                } else {
-                    $userSession->logout();
-
-                }
+                $userSession->logout();
             }
 
             // Hide password change form
             if ($this->config->getSystemValue('oidc_login_hide_password_form', false)) {
-                Util::addStyle($this->appName, 'oidc.hidepasswordform');
+                Util::addStyle(self::APP_ID, 'oidc.hidepasswordform');
             }
 
             return;
+
         }
 
         // Redirect automatically or show alt login page
