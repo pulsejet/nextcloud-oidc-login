@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OCA\OIDCLogin\Service;
 
 use Exception;
+use OCA\OIDCLogin\Events\AccessTokenUpdatedEvent;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\ILogger;
 use OCP\ISession;
@@ -25,18 +29,22 @@ class TokenService
 
     private ILogger $logger;
 
+    private IEventDispatcher $dispatcher;
+
     public function __construct(
         $appName,
         ISession $session,
         IConfig $config,
         IURLGenerator $urlGenerator,
-        ILogger $logger
+        ILogger $logger,
+        IEventDispatcher $dispatcher
     ) {
         $this->appName = $appName;
         $this->session = $session;
         $this->config = $config;
         $this->urlGenerator = $urlGenerator;
         $this->logger = $logger;
+        $this->dispatcher = $dispatcher;
     }
 
     /**
@@ -128,6 +136,7 @@ class TokenService
         $accessTokenExpiresAt = $tokenResponse->expires_in + $now;
 
         $this->session->set('oidc_access_token_expires_at', $accessTokenExpiresAt);
+        $this->dispatcher->dispatchTyped(new AccessTokenUpdatedEvent($tokenResponse->access_token));
     }
 
     public function getLogoutUrl()
