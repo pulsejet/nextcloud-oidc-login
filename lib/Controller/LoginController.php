@@ -94,11 +94,20 @@ class LoginController extends Controller
             $oidc->authenticate();
 
             $tokenResponse = $oidc->getTokenResponse();
-            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
+
+            $refreshTokensEnabled = false;
+            $refreshTokensDisabledExplicitly = $this->config->getSystemValue('oidc_refresh_tokens_disabled', false);
+
+            if (!$refreshTokensDisabledExplicitly) {
+                $scopes = $oidc->getScopes();
+                $refreshTokensEnabled = $this->shouldEnableRefreshTokens($scopes, $tokenResponse);
+            }
 
             if ($refreshTokensEnabled) {
+                $this->session->set('oidc_refresh_tokens_enabled', 1);
                 $this->tokenService->storeTokens($tokenResponse);
             }
+
             $user = null;
             if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
                 // Get user information from ID Token
@@ -176,5 +185,20 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function shouldEnableRefreshTokens(array $scopes, object $tokenResponse): bool
+    {
+        foreach ($scopes as $scope) {
+            if (str_contains($scope, 'offline_access')) {
+                return true;
+            }
+        }
+
+        if (isset($tokenResponse->refresh_token) && !empty($tokenResponse->refresh_token)) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -106,11 +106,11 @@ class Application extends App implements IBootstrap
             // Disable password confirmation for user
             $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
 
-            $refreshTokensEnabled = $this->config->getSystemValue('oidc_refresh_tokens_enabled', false);
+            $refreshTokensEnabled = $session->exists('oidc_refresh_tokens_enabled');
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
-                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
+                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session, $refreshTokensEnabled) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
                         return;
@@ -119,12 +119,13 @@ class Application extends App implements IBootstrap
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.
                     $session->set('clearingExecutionContexts', '1');
-                    $session->close();
-                    header('Clear-Site-Data: "cache", "storage"');
-
                     if ($refreshTokensEnabled) {
+                        // Refresh tokens before logout
+                        $this->tokenService->refreshTokens();
                         $logoutUrl = $this->tokenService->getLogoutUrl();
                     }
+                    $session->close();
+                    header('Clear-Site-Data: "cache", "storage"');
 
                     header('Location: '.$logoutUrl);
 
@@ -139,10 +140,8 @@ class Application extends App implements IBootstrap
                     header('Location: '.$loginLink);
 
                     exit;
-                } else {
-                    $userSession->logout();
-
                 }
+                $userSession->logout();
             }
 
             // Hide password change form

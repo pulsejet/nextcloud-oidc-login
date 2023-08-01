@@ -210,11 +210,9 @@ $CONFIG = array (
     // The default value is empty, which won't apply the PKCE flow.
     'oidc_login_code_challenge_method' => '',
 
-    // If OIDC server has refresh tokens enabled and
-    // you want to manage session at OIDC server by storing
-    // and refreshing tokens. Defaults to false.
-    'oidc_refresh_tokens_enabled' => false,
-
+    // If you want to explicitly disable usage of access/refresh
+    // tokens. Defaults to false.
+    'oidc_refresh_tokens_disabled' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)

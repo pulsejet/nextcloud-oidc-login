@@ -127,7 +127,7 @@ class TokenService
         $now = time();
         $accessTokenExpiresAt = $tokenResponse->expires_in + $now;
 
-        $this->session->set('oidc_access_token_expires_at', $accessTokenExpiresIn);
+        $this->session->set('oidc_access_token_expires_at', $accessTokenExpiresAt);
     }
 
     public function getLogoutUrl()
