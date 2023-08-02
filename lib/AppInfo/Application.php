@@ -110,7 +110,15 @@ class Application extends App implements IBootstrap
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
-                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session, $refreshTokensEnabled) {
+                $userSession->listen('\OC\User', 'logout', function () use (&$logoutUrl, $refreshTokensEnabled, $session) {
+                    if ($refreshTokensEnabled) {
+                        // Refresh tokens before logout
+                        $this->tokenService->refreshTokens();
+                        $logoutUrl = $session->get('oidc_logout_url');
+                    }
+                });
+
+                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
                         return;
@@ -119,11 +127,6 @@ class Application extends App implements IBootstrap
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.
                     $session->set('clearingExecutionContexts', '1');
-                    if ($refreshTokensEnabled) {
-                        // Refresh tokens before logout
-                        $this->tokenService->refreshTokens();
-                        $logoutUrl = $this->tokenService->getLogoutUrl();
-                    }
                     $session->close();
                     header('Clear-Site-Data: "cache", "storage"');
 

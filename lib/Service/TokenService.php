@@ -105,15 +105,9 @@ class TokenService
             $oidc = $this->createOIDCClient($callbackUrl);
             $tokenResponse = $oidc->refreshToken($refreshToken);
             $this->storeTokens($tokenResponse);
-
-            if ($this->session->get('oidc_logout_url')) {
-                $this->logger->debug('updating logout url');
-                $oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false);
-                $logoutUrl = $oidc->getEndSessionUrl($oidc_login_logout_url);
-                $this->session->set('oidc_logout_url', $logoutUrl);
-            }
-
             $this->logger->debug('token refreshed');
+
+            $this->prepareLogout($oidc);
 
             return true;
         } catch (Exception $e) {
@@ -139,8 +133,17 @@ class TokenService
         $this->dispatcher->dispatchTyped(new AccessTokenUpdatedEvent($tokenResponse->access_token));
     }
 
-    public function getLogoutUrl()
+    public function prepareLogout(OpenIDConnectClient $oidc)
     {
-        return $this->session->get('oidc_logout_url');
+        if ($oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false)) {
+            if ($this->config->getSystemValue('oidc_login_end_session_redirect', false)) {
+                $signout_url = $oidc->getEndSessionUrl($oidc_login_logout_url);
+                $this->session->set('oidc_logout_url', $signout_url);
+            } else {
+                $this->session->set('oidc_logout_url', $oidc_login_logout_url);
+            }
+        } else {
+            $this->session->set('oidc_logout_url', false);
+        }
     }
 }

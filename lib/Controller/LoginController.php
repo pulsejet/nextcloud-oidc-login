@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Service\LoginService;
@@ -117,7 +119,7 @@ class LoginController extends Controller
                 $user = $oidc->requestUserInfo();
             }
 
-            $this->prepareLogout($oidc);
+            $this->tokenService->prepareLogout($oidc);
 
             // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true));
@@ -142,20 +144,6 @@ class LoginController extends Controller
         }
 
         return $this->login($profile);
-    }
-
-    private function prepareLogout($oidc)
-    {
-        if ($oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false)) {
-            if ($this->config->getSystemValue('oidc_login_end_session_redirect', false)) {
-                $signout_url = $oidc->getEndSessionUrl($oidc_login_logout_url);
-                $this->session->set('oidc_logout_url', $signout_url);
-            } else {
-                $this->session->set('oidc_logout_url', $oidc_login_logout_url);
-            }
-        } else {
-            $this->session->set('oidc_logout_url', false);
-        }
     }
 
     private function login($profile)
