@@ -100,7 +100,7 @@ class Application extends App implements IBootstrap
             $refreshTokensEnabled = $session->exists('oidc_refresh_tokens_enabled');
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
-             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
+            if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'logout', function () use (&$logoutUrl, $refreshTokensEnabled, $session) {
                     if ($refreshTokensEnabled) {
                         // Refresh tokens before logout

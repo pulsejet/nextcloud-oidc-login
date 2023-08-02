@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
@@ -114,8 +116,12 @@ class LoginController extends Controller
                 $user = $oidc->requestUserInfo();
             }
 
+<<<<<<< HEAD
             // Store logout URLs in session
             $this->prepareLogout($oidc);
+=======
+            $this->tokenService->prepareLogout($oidc);
+>>>>>>> 0ea84a2 (Fix logout and token refresh)
 
             // Continue with login
             return $this->login($profile);
@@ -147,7 +153,16 @@ class LoginController extends Controller
         }
     }
 
-    private function login(array $profile): RedirectResponse
+    private function authSuccess($profile)
+    {
+        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
+            $this->session->set('login_redirect_url', $redirectUrl);
+        }
+
+        return $this->login($profile);
+    }
+
+    private function login($profile, $oidc): RedirectResponse
     {
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
