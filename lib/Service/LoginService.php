@@ -498,7 +498,7 @@ class LoginService
         // Remove user from groups not present
         $currentUserGroups = $this->groupManager->getUserGroups($user);
         foreach ($currentUserGroups as $currentUserGroup) {
-            if (($key = array_search($currentUserGroup->getDisplayName(), $groupNames, true)) !== false) {
+            if (($key = array_search($currentUserGroup->getGID(), $groupNames, true)) !== false) {
                 // User is already in group - don't process further
                 unset($groupNames[$key]);
             } else {
@@ -506,7 +506,7 @@ class LoginService
                 // Remove the user ONLY if we're using profile groups
                 // or the group is the `admin` group and we manage admin role
                 if ($this->attr->hasGroups($profile)
-                    || ($this->attr->managesAdmin() && 'admin' === $currentUserGroup->getDisplayName())) {
+                    || ($this->attr->managesAdmin() && 'admin' === $currentUserGroup->getGID())) {
                     $currentUserGroup->removeUser($user);
                 }
             }
