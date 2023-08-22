@@ -11,6 +11,9 @@ use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\ISession;
 use OCP\IUserManager;
+use OCP\IUser;
+use OCP\EventDispatcher\GenericEvent;
+use OCP\EventDispatcher\IEventDispatcher;
 use Psr\Log\LoggerInterface;
 
 class LoginService
@@ -206,7 +209,12 @@ class LoginService
 
         // Update the user's last login timestamp, since the conditions above tend to cause the
         // completeLogin() call above to skip doing so.
-        $user->updateLastLoginTimestamp();
+        $firstTimeLogin = $user->updateLastLoginTimestamp();
+
+        // Same for the firstLogin event
+        if ($firstTimeLogin) {
+            \OC::$server->get(IEventDispatcher::class)->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
+        }
     }
 
     /**
