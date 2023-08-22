@@ -5,15 +5,15 @@ namespace OCA\OIDCLogin\Service;
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCP\EventDispatcher\GenericEvent;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\ISession;
-use OCP\IUserManager;
 use OCP\IUser;
-use OCP\EventDispatcher\GenericEvent;
-use OCP\EventDispatcher\IEventDispatcher;
+use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class LoginService
@@ -213,7 +213,7 @@ class LoginService
 
         // Same for the firstLogin event
         if ($firstTimeLogin) {
-            \OC::$server->get(IEventDispatcher::class)->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
+            \OC::$server->get(IEventDispatcher::class)->dispatch(IUser::class.'::firstLogin', new GenericEvent($user));
         }
     }
 
