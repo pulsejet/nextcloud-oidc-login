@@ -1,2 +1,4 @@
 .php-cs-fixer.cache
 docker-compose.yml
+vendor/
+composer.lock

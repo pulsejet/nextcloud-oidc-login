@@ -2,6 +2,13 @@
 
 This file contains some useful tips for developers of this app.
 
+## Lint
+
+```bash
+composer install
+composer lint
+```
+
 ## Dummy OIDC Provider
 
 Since the app uses OIDC, you may need a dummy provider to work with.

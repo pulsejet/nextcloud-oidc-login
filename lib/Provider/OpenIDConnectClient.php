@@ -94,6 +94,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
                 return parent::verifyJWTsignature($jwt);
             }
+
             // Otherwise, rethrow error
             throw $e;
         }
