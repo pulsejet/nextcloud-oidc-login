@@ -2,71 +2,40 @@
 
 namespace OCA\OIDCLogin\Controller;
 
+use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
-use OCP\IGroupManager;
-use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
-use OCP\IUserManager;
 use OCP\IUserSession;
 
 class LoginController extends Controller
 {
-    /** @var IConfig */
-    private $config;
-
-    /** @var IURLGenerator */
-    private $urlGenerator;
-
-    /** @var IUserManager */
-    private $userManager;
-
-    /** @var IUserSession */
-    private $userSession;
-
-    /** @var IGroupManager */
-    private $groupManager;
-
-    /** @var ISession */
-    private $session;
-
-    /** @var LoginService */
-    private $loginService;
-
-    /** @var IL10N */
-    private $l;
-
-    /** @var \OCA\Files_External\Service\GlobalStoragesService */
-    private $storagesService;
+    private IConfig $config;
+    private IURLGenerator $urlGenerator;
+    private IUserSession $userSession;
+    private ISession $session;
+    private LoginService $loginService;
 
     public function __construct(
-        $appName,
+        string $appName,
         IRequest $request,
         IConfig $config,
         IURLGenerator $urlGenerator,
-        IUserManager $userManager,
         IUserSession $userSession,
-        IGroupManager $groupManager,
         ISession $session,
-        IL10N $l,
-        LoginService $loginService,
-        $storagesService
+        LoginService $loginService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
         $this->urlGenerator = $urlGenerator;
-        $this->userManager = $userManager;
         $this->userSession = $userSession;
-        $this->groupManager = $groupManager;
         $this->session = $session;
-        $this->l = $l;
         $this->loginService = $loginService;
-        $this->storagesService = $storagesService;
     }
 
     /**
@@ -76,7 +45,7 @@ class LoginController extends Controller
      *
      * @UseSession
      */
-    public function oidc()
+    public function oidc(): RedirectResponse
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
 
@@ -114,7 +83,7 @@ class LoginController extends Controller
         }
     }
 
-    private function authSuccess($profile)
+    private function authSuccess(array $profile): RedirectResponse
     {
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             $this->session->set('login_redirect_url', $redirectUrl);
@@ -123,7 +92,7 @@ class LoginController extends Controller
         return $this->login($profile);
     }
 
-    private function prepareLogout($oidc)
+    private function prepareLogout(OpenIDConnectClient $oidc): void
     {
         if ($oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false)) {
             if ($this->config->getSystemValue('oidc_login_end_session_redirect', false)) {
@@ -137,20 +106,20 @@ class LoginController extends Controller
         }
     }
 
-    private function login($profile)
+    private function login(array $profile): RedirectResponse
     {
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
-        list($user, $userPassword) = $this->loginService->login($profile, $this->userSession, $this->request);
+        [$user, $password] = $this->loginService->login($profile);
 
         // Workaround to create user files folder. Remove it later.
-        \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
+        \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
-        $this->session->set('last-password-confirm', \OC::$server->query(ITimeFactory::class)->getTime());
+        $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->now());
 
         // Go to redirection URI
         if ($redirectUrl = $this->session->get('login_redirect_url')) {

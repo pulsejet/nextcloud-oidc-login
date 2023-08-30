@@ -21,14 +21,10 @@ use OCP\Util;
 
 class Application extends App implements IBootstrap
 {
-    /** @var IURLGenerator */
-    protected $url;
+    protected IURLGenerator $url;
+    protected IL10N $l;
+    protected IConfig $config;
 
-    /** @var IL10N */
-    protected $l;
-
-    /** @var Config */
-    protected $config;
     private $appName = 'oidc_login';
 
     public function __construct()
@@ -40,42 +36,36 @@ class Application extends App implements IBootstrap
     {
         $context->registerAlternativeLogin(OIDCLoginOption::class);
 
-        // Try to get Files_External storage service
-        $context->registerService('storagesService', function ($container) {
-            $storagesService = null;
-
-            try {
-                $storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-                    $container->query(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
-            } catch (Exception $e) {
-            }
-
-            return $storagesService;
-        });
-
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
-            '\OCA\OIDCLogin\WebDAV\BearerAuthBackend'
-        );
-
-        $context->registerEventListener(
-            'OCA\DAV\Connector\Sabre::authInit',
-            '\OCA\OIDCLogin\WebDAV\BasicAuthBackend'
+            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::addPlugin',
-            '\OCA\OIDCLogin\WebDAV\BasicAuthBackend'
+            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
+        );
+
+        $context->registerEventListener(
+            'OCA\DAV\Connector\Sabre::authInit',
+            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
+        );
+
+        $context->registerEventListener(
+            'OCA\DAV\Connector\Sabre::addPlugin',
+            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
         );
     }
 
     public function boot(IBootContext $context): void
     {
         $container = $context->getAppContainer();
-        $this->l = $container->query(IL10N::class);
-        $this->url = $container->query(IURLGenerator::class);
-        $this->config = $container->query(IConfig::class);
-        $request = $container->query(IRequest::class);
+        $this->l = $container->get(IL10N::class);
+        $this->url = $container->get(IURLGenerator::class);
+        $this->config = $container->get(IConfig::class);
+
+        /** @var IRequest */
+        $request = $container->get(IRequest::class);
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -87,8 +77,8 @@ class Application extends App implements IBootstrap
         $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1' : false;
 
         // Get logged in user's session
-        $userSession = $container->query(IUserSession::class);
-        $session = $container->query(ISession::class);
+        $userSession = $container->get(IUserSession::class);
+        $session = $container->get(ISession::class);
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
@@ -98,14 +88,14 @@ class Application extends App implements IBootstrap
             }
 
             // Disable password confirmation for user
-            $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
+            $session->set('last-password-confirm', $container->get(ITimeFactory::class)->getTime());
 
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
                     // Do nothing if this is a CORS request
-                    if ($this->getContainer()->query(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
+                    if ($this->getContainer()->get(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
                         return;
                     }
 
@@ -156,7 +146,7 @@ class Application extends App implements IBootstrap
 
             // Alt login page
             if ($altLoginPage) {
-                $OIDC_LOGIN_URL = $loginLink;
+                $OIDC_LOGIN_URL = $loginLink; // available in alt login page
                 header_remove('content-security-policy');
 
                 require $altLoginPage;

@@ -6,7 +6,6 @@ use OCA\OIDCLogin\Service\LoginService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
-use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -14,33 +13,18 @@ use Sabre\DAV\Auth\Backend\AbstractBasic;
 
 class BasicAuthBackend extends AbstractBasic implements IEventListener
 {
-    /** @var string */
-    private $appName;
-
-    /** @var IRequest */
-    private $request;
-
-    /** @var IUserSession */
-    private $userSession;
-
-    /** @var ISession */
-    private $session;
-
-    /** @var IConfig */
-    private $config;
-
-    /** @var LoggerInterface */
-    private $logger;
-
-    /** @var LoginService */
-    private $loginService;
+    private string $appName;
+    private IUserSession $userSession;
+    private ISession $session;
+    private IConfig $config;
+    private LoggerInterface $logger;
+    private LoginService $loginService;
 
     /**
      * @param string $principalPrefix
      */
     public function __construct(
         string $appName,
-        IRequest $request,
         IUserSession $userSession,
         ISession $session,
         IConfig $config,
@@ -49,14 +33,12 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         $principalPrefix = 'principals/users/'
     ) {
         $this->appName = $appName;
-        $this->request = $request;
         $this->userSession = $userSession;
         $this->session = $session;
         $this->config = $config;
         $this->logger = $logger;
         $this->loginService = $loginService;
         $this->principalPrefix = $principalPrefix;
-        $this->context = ['app' => $appName];
 
         // setup realm
         $defaults = new \OCP\Defaults();
@@ -71,7 +53,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
             try {
                 $this->login($username, $password);
             } catch (\Exception $e) {
-                $this->logger->debug("WebDAV basic token validation failed with: {$e->getMessage()}", $this->context);
+                $this->logger->debug("WebDAV basic token validation failed with: {$e->getMessage()}", ['app' => $this->appName]);
 
                 return false;
             }
@@ -90,12 +72,18 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
      */
     public function handle(Event $event): void
     {
-        $plugin = $event->getServer()->getPlugin('auth');
-        $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
-        $password_auth_enabled = $this->config->getSystemValue('oidc_login_password_authentication', false);
+        if (!$event instanceof \OCA\DAV\Events\SabrePluginAuthInitEvent) {
+            return;
+        }
 
-        if (null !== $plugin && $webdav_enabled && $password_auth_enabled) {
-            $plugin->addBackend($this);
+        $authPlugin = $event->getServer()->getPlugin('auth');
+        if ($authPlugin instanceof \Sabre\DAV\Auth\Plugin) {
+            $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
+            $password_auth_enabled = $this->config->getSystemValue('oidc_login_password_authentication', false);
+
+            if ($webdav_enabled && $password_auth_enabled) {
+                $authPlugin->addBackend($this);
+            }
         }
     }
 
@@ -143,6 +131,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
 
         $profile = $client->getTokenProfile($token->access_token);
 
-        $this->loginService->login($profile, $this->userSession, $this->request);
+        $this->loginService->login($profile);
     }
 }
