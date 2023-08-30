@@ -77,7 +77,7 @@ class LoginService
     /**
      * Log in the user using the provided profile.
      *
-     * @return string[] [user, password]
+     * @return array [\OCP\IUser user, string password]
      */
     public function login(array $profile): array
     {

@@ -113,6 +113,7 @@ class LoginController extends Controller
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
+        /** @var \OCP\IUser $user */
         [$user, $password] = $this->loginService->login($profile);
 
         // Workaround to create user files folder. Remove it later.
