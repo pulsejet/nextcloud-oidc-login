@@ -56,19 +56,14 @@ class LoginController extends Controller
             // Authenticate
             $oidc->authenticate();
 
-            $user = null;
-            if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
-                // Get user information from ID Token
-                $user = $oidc->getIdTokenPayload();
-            } else {
-                // Get user information from OIDC
-                $user = $oidc->requestUserInfo();
-            }
+            // Get user info
+            $profile = $oidc->getProfile();
 
+            // Store logout URLs in session
             $this->prepareLogout($oidc);
 
-            // Convert to PHP array and process
-            return $this->authSuccess(json_decode(json_encode($user), true));
+            // Continue with login
+            return $this->login($profile);
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
             if ($this->config->getSystemValue('oidc_login_redir_fallback', false)) {
@@ -81,15 +76,6 @@ class LoginController extends Controller
             // Show error page
             \OC_Template::printErrorPage($e->getMessage());
         }
-    }
-
-    private function authSuccess(array $profile): RedirectResponse
-    {
-        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
-            $this->session->set('login_redirect_url', $redirectUrl);
-        }
-
-        return $this->login($profile);
     }
 
     private function prepareLogout(OpenIDConnectClient $oidc): void
@@ -123,7 +109,7 @@ class LoginController extends Controller
         $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->now());
 
         // Go to redirection URI
-        if ($redirectUrl = $this->session->get('login_redirect_url')) {
+        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             return new RedirectResponse($redirectUrl);
         }
 

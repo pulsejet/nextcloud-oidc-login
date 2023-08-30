@@ -120,6 +120,22 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
     }
 
+    public function getProfile(): array
+    {
+        /** @var array $profile */
+        $profile = null;
+
+        if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
+            // Get user information from ID Token
+            $profile = $this->getIdTokenPayload();
+        } else {
+            // Get user information from OIDC
+            $profile = $this->requestUserInfo();
+        }
+
+        return json_decode(json_encode($profile), true);
+    }
+
     public function getTokenProfile(string $token): array
     {
         if ($this->isJWT($token)) {
@@ -128,7 +144,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
         $this->accessToken = $token;
 
-        return $this->requestUserInfo();
+        return $this->getProfile();
     }
 
     public function isJWT(string $token): bool
