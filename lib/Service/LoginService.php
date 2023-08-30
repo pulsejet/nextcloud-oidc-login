@@ -391,6 +391,7 @@ class LoginService
                 if (200 === curl_getinfo($curl, CURLINFO_HTTP_CODE)) {
                     $image = new \OC_Image();
                     $image->loadFromData($raw);
+                    $image->centerCrop();
 
                     $avatar->set($image);
                 }
