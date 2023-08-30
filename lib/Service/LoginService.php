@@ -360,7 +360,9 @@ class LoginService
         }
 
         if (null !== ($mail = $this->attr->mail($profile))) {
-            $user->setSystemEMailAddress((string) $mail);
+            if ($user->getSystemEMailAddress() !== $mail) {
+                $user->setSystemEMailAddress((string) $mail);
+            }
         }
 
         // Set quota
