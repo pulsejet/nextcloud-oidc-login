@@ -183,15 +183,24 @@ class LoginService
         $userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
         $token = $this->tokenProvider->getToken($userSession->getSession()->getId());
 
+        // Log the user in. This will throw if login fails.
         $userSession->completeLogin($user, [
             'loginName' => $user->getUID(),
             'password' => $password,
             'token' => empty($password) ? $token : null,
         ], false);
 
-        // Update the user's last login timestamp, since the conditions above tend to cause the
-        // completeLogin() call above to skip doing so.
-        $user->updateLastLoginTimestamp();
+        // Last login timestamp isn't updated when logging in with a token
+        // This will return true for first login.
+        // If the user was newly created then completeLogin will already trigger
+        // prepareUserLogin. Fortunately, the subsequent updateLastLoginTimestamp call
+        // we make here will return false then.
+        if ($user->updateLastLoginTimestamp()) { // true if first login
+            // warning: calling protected method
+            $method = (new \ReflectionClass($userSession))->getMethod('prepareUserLogin');
+            $method->setAccessible(true);
+            $method->invoke($userSession, true, false);
+        }
     }
 
     /**
