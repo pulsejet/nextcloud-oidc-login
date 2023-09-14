@@ -74,7 +74,7 @@ class Application extends App implements IBootstrap
         $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
 
         // URL for login without redirecting forcefully, false if we are not doing that
-        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1' : false;
+        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1&clear=1' : false;
 
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
@@ -93,7 +93,7 @@ class Application extends App implements IBootstrap
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
-                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
+                $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session, $request) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->get(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
                         return;
@@ -101,9 +101,12 @@ class Application extends App implements IBootstrap
 
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.
-                    $session->set('clearingExecutionContexts', '1');
                     $session->close();
-                    header('Clear-Site-Data: "cache", "storage"');
+
+                    if ($request->getServerProtocol() === 'https') {
+                        // This feature is available only in secure contexts
+                        header('Clear-Site-Data: "cache", "storage"');
+                    }
 
                     header('Location: '.$logoutUrl);
 
