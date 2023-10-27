@@ -18,6 +18,7 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Util;
+use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 
 class Application extends App implements IBootstrap
 {
@@ -66,6 +67,15 @@ class Application extends App implements IBootstrap
 
         /** @var IRequest */
         $request = $container->get(IRequest::class);
+        $bearerAuthBackend = $container->query(BearerAuthBackend::class);
+
+         // If it is an OCS request, try to authenticate with bearer token
+         if ($request->getHeader('OCS-APIREQUEST') === 'true' &&
+         $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true' &&
+         str_starts_with($request->getHeader('Authorization'), 'Bearer ')) {
+            $this->loginWithBearerToken($request, $bearerAuthBackend);
+        }
+
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -154,5 +164,14 @@ class Application extends App implements IBootstrap
                 exit;
             }
         }
+    }
+
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend) {
+        $authHeader = $request->getHeader('Authorization');
+		$bearerToken = substr($authHeader, 7);
+        if (empty($bearerToken)) {
+            return;
+        }
+		$bearerAuthBackend->validateBearerToken($bearerToken);
     }
 }
