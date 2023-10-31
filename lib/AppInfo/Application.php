@@ -69,10 +69,10 @@ class Application extends App implements IBootstrap
         $request = $container->get(IRequest::class);
         $bearerAuthBackend = $container->query(BearerAuthBackend::class);
 
-         // If it is an OCS request, try to authenticate with bearer token
-         if ($request->getHeader('OCS-APIREQUEST') === 'true' &&
-         $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true' &&
-         str_starts_with($request->getHeader('Authorization'), 'Bearer ')) {
+        // If it is an OCS request, try to authenticate with bearer token
+        if ($request->getHeader('OCS-APIREQUEST') === 'true' &&
+        $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true' &&
+        str_starts_with($request->getHeader('Authorization'), 'Bearer ')) {
             $this->loginWithBearerToken($request, $bearerAuthBackend);
         }
 
@@ -84,7 +84,7 @@ class Application extends App implements IBootstrap
         $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
 
         // URL for login without redirecting forcefully, false if we are not doing that
-        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1' : false;
+        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
 
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
@@ -115,7 +115,7 @@ class Application extends App implements IBootstrap
                     $session->close();
                     header('Clear-Site-Data: "cache", "storage"');
 
-                    header('Location: '.$logoutUrl);
+                    header('Location: ' . $logoutUrl);
 
                     exit;
                 });
@@ -149,7 +149,7 @@ class Application extends App implements IBootstrap
 
             // Force redirect
             if ($useLoginRedirect) {
-                header('Location: '.$loginLink);
+                header('Location: ' . $loginLink);
 
                 exit;
             }
@@ -166,12 +166,13 @@ class Application extends App implements IBootstrap
         }
     }
 
-    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend) {
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend)
+    {
         $authHeader = $request->getHeader('Authorization');
-		$bearerToken = substr($authHeader, 7);
+        $bearerToken = substr($authHeader, 7);
         if (empty($bearerToken)) {
             return;
         }
-		$bearerAuthBackend->validateBearerToken($bearerToken);
+        $bearerAuthBackend->validateBearerToken($bearerToken);
     }
 }

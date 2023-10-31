@@ -419,7 +419,7 @@ class LoginService
 
             // Make sure login filter allowed values names is an array
             if (!\is_array($profileLoginFilterValues)) {
-                throw new LoginException('Login filter values field must be an array, '.\gettype($profileLoginFilterValues).' given');
+                throw new LoginException('Login filter values field must be an array, ' . \gettype($profileLoginFilterValues) . ' given');
             }
 
             // Add to all login filter values
@@ -459,7 +459,7 @@ class LoginService
 
             // Make sure group names is an array
             if (!\is_array($profileGroups)) {
-                throw new LoginException('Groups field must be an array, '.\gettype($profileGroups).' given');
+                throw new LoginException('Groups field must be an array, ' . \gettype($profileGroups) . ' given');
             }
 
             // Add to all groups
@@ -518,12 +518,12 @@ class LoginService
     {
         $result = [];
         foreach ($array as $key => $value) {
-            $result[$prefix.$key] = $value;
+            $result[$prefix . $key] = $value;
             if (\is_array($value)) {
-                $result = $result + $this->flatten($value, $prefix.$key.'_');
+                $result = $result + $this->flatten($value, $prefix . $key . '_');
             }
             if (\is_int($key) && \is_string($value)) {
-                $result[$prefix.$value] = $value;
+                $result[$prefix . $value] = $value;
             }
         }
 
