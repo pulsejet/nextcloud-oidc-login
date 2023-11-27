@@ -49,7 +49,5 @@ class OIDCLoginOption implements IAlternativeLogin
         return 'oidc-button';
     }
 
-    public function load(): void
-    {
-    }
+    public function load(): void {}
 }

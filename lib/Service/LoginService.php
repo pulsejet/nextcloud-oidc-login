@@ -298,7 +298,7 @@ class LoginService
             }
 
             // Check if the user already has matching storage on their root
-            $storages = array_filter($this->storagesService->getStorages(), function ($storage) use ($uid) {
+            $storages = array_filter($this->storagesService->getStorages(), static function ($storage) use ($uid) {
                 return \in_array($uid, $storage->getApplicableUsers(), true) // User must own the storage
                     && '/' === $storage->getMountPoint() // It must be mounted as root
                     && 'local' === $storage->getBackend()->getIdentifier() // It must be type local
@@ -520,7 +520,7 @@ class LoginService
         foreach ($array as $key => $value) {
             $result[$prefix.$key] = $value;
             if (\is_array($value)) {
-                $result = $result + $this->flatten($value, $prefix.$key.'_');
+                $result += $this->flatten($value, $prefix.$key.'_');
             }
             if (\is_int($key) && \is_string($value)) {
                 $result[$prefix.$value] = $value;
