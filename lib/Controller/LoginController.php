@@ -106,7 +106,7 @@ class LoginController extends Controller
         \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
-        $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->now());
+        $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->getTime());
 
         // Go to redirection URI
         if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
