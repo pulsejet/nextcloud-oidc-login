@@ -139,7 +139,10 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     public function getTokenProfile(string $token): array
     {
         if ($this->isJWT($token)) {
-            return $this->decodeJWT($token, 1);
+            $jwt = $this->decodeJWT($token, 1);
+
+            // Convert stdClass to array recursively
+            return json_decode(json_encode($jwt), true);
         }
 
         $this->accessToken = $token;

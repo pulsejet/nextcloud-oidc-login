@@ -73,7 +73,8 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      */
     public function handle(Event $event): void
     {
-        if (!$event instanceof \OCA\DAV\Events\SabrePluginAuthInitEvent) {
+        if (!$event instanceof \OCA\DAV\Events\SabrePluginAuthInitEvent
+            && !$event instanceof \OCP\SabrePluginEvent) {
             return;
         }
 
