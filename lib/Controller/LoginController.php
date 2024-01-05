@@ -7,10 +7,12 @@ use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Files\IRootFolder;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUser;
 use OCP\IUserSession;
 
 class LoginController extends Controller
@@ -99,11 +101,11 @@ class LoginController extends Controller
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
-        /** @var \OCP\IUser $user */
+        /** @var IUser $user */
         [$user, $password] = $this->loginService->login($profile);
 
         // Workaround to create user files folder. Remove it later.
-        \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
+        \OC::$server->get(IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
         $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->getTime());

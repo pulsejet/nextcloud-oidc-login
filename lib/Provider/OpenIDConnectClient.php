@@ -4,10 +4,12 @@ namespace OCA\OIDCLogin\Provider;
 
 require_once __DIR__.'/../../3rdparty/autoload.php';
 
+use Jumbojett\OpenIDConnectClient;
+use Jumbojett\OpenIDConnectClientException;
 use OCP\IConfig;
 use OCP\ISession;
 
-class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
+class OpenIDConnectClient extends OpenIDConnectClient
 {
     // Keycloak uses a default of 86400 seconds (1 day) as caching time for public keys
     // https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
@@ -75,7 +77,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      *
      * @return bool
      *
-     * @throws \Jumbojett\OpenIDConnectClientException
+     * @throws OpenIDConnectClientException
      */
     public function verifyJWTsignature($jwt)
     {
@@ -100,7 +102,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     /**
      * Validates the given bearer token by checking the validity of the tokens signature and claims.
      *
-     * @throws \Jumbojett\OpenIDConnectClientException
+     * @throws OpenIDConnectClientException
      */
     public function validateBearerToken(string $token): void
     {
@@ -113,10 +115,10 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // There is no nonce when validating bearer token
         $claims->nonce = $this->getNonce();
         if ($this->isJWT($token) && !$this->verifyJWTsignature($token)) {
-            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify signature');
+            throw new OpenIDConnectClientException('Unable to verify signature');
         }
         if (!$this->verifyJWTclaims($claims)) {
-            throw new \Jumbojett\OpenIDConnectClientException('Unable to verify claims');
+            throw new OpenIDConnectClientException('Unable to verify claims');
         }
     }
 
@@ -287,7 +289,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      *
      * @param mixed $ignore_cache
      *
-     * @throws \Jumbojett\OpenIDConnectClientException
+     * @throws OpenIDConnectClientException
      */
     private function getJWKs($ignore_cache = false)
     {
@@ -304,7 +306,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         if (time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
             \OC::$server->getLogger()->warning('Too many update signing key requests', ['app' => $this->appName]);
 
-            throw new \Jumbojett\OpenIDConnectClientException('Too many update signing key requests');
+            throw new OpenIDConnectClientException('Too many update signing key requests');
         }
 
         // Avoid recursion

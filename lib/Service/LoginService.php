@@ -4,13 +4,17 @@ namespace OCA\OIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
+use OC\User\Session;
+use OCA\Files_External\Service\GlobalStoragesService;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCA\User_LDAP\IUserLDAP;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUser;
+use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -55,7 +59,7 @@ class LoginService
 
         // get external storage service if available
         $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-            \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+            \OC::$server->get(GlobalStoragesService::class) : null;
     }
 
     public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
@@ -167,7 +171,7 @@ class LoginService
      */
     public function completeLogin(IUser $user, string $password): void
     {
-        /** @var \OC\User\Session */
+        /** @var Session */
         $userSession = \OC::$server->get(IUserSession::class);
 
         /* On the v1 route /remote.php/webdav, a default nextcloud backend
@@ -221,7 +225,7 @@ class LoginService
         // Get the LDAP user backend
         $ldap = null;
         foreach ($this->userManager->getBackends() as $backend) {
-            /** @var \OCP\IUserBackend $backend */
+            /** @var IUserBackend $backend */
             if ($backend->getBackendName() === $this->config->getSystemValue('oidc_login_ldap_backend', 'LDAP')) {
                 $ldap = $backend;
             }
@@ -232,7 +236,7 @@ class LoginService
             throw new LoginException($this->l->t('No LDAP user backend found!'));
         }
 
-        /** @var \OCA\User_LDAP\IUserLDAP $ldap */
+        /** @var IUserLDAP $ldap */
 
         // Get LDAP Access object
         $access = $ldap->getLDAPAccess($ldapUid);

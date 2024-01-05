@@ -6,6 +6,8 @@ namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCA\OIDCLogin\OIDCLoginOption;
+use OCA\OIDCLogin\WebDAV\BasicAuthBackend;
+use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -38,22 +40,22 @@ class Application extends App implements IBootstrap
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
-            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
+            BearerAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::addPlugin',
-            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
+            BearerAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
-            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
+            BasicAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::addPlugin',
-            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
+            BasicAuthBackend::class
         );
     }
 
