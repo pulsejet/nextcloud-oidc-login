@@ -10,5 +10,6 @@
 return [
     'routes' => [
         ['name' => 'login#oidc', 'url' => '/oidc', 'verb' => 'GET'],
+        ['name' => 'login#frontChannelLogout', 'url' => '/oidc/logout', 'verb' => 'GET']
     ]
 ];
