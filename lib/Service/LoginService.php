@@ -136,7 +136,7 @@ class LoginService
         if (null === $user) {
             // Generate random password of 32 characters that meets nextcloud's strictest password policy
             $randomPassword = substr(base64_encode(random_bytes(64)), 0, 28);
-            $password = "aA".$randomPassword."1$";
+            $password = 'aA'.$randomPassword.'1$';
 
             // Create user. This will throw if creation is not permitted.
             $user = $this->createUser($uid, $password);
