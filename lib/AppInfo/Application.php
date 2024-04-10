@@ -105,11 +105,13 @@ class Application extends App implements IBootstrap
                     // redirecting to the logout url.
                     $session->set('clearingExecutionContexts', '1');
                     $session->close();
-                    header('Clear-Site-Data: "cache", "storage"');
+                    if (!$this->isApiRequest()) {
+                        header('Clear-Site-Data: "cache", "storage"');
 
-                    header('Location: '.$logoutUrl);
+                        header('Location: '.$logoutUrl);
 
-                    exit;
+                        exit;
+                    }
                 });
             }
 
@@ -156,5 +158,9 @@ class Application extends App implements IBootstrap
                 exit;
             }
         }
+    }
+    function isApiRequest() {
+        // Check if the request includes an 'Accept' header with value 'application/json'
+        return isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
     }
 }
