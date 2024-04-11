@@ -5,7 +5,6 @@ namespace OCA\OIDCLogin\Service;
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
 use OC\User\Session;
-use OCA\Files_External\Service\GlobalStoragesService;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
 use OCP\IAvatarManager;
@@ -59,7 +58,7 @@ class LoginService
 
         // get external storage service if available
         $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-            \OC::$server->get(GlobalStoragesService::class) : null;
+            \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
     }
 
     public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
