@@ -107,9 +107,7 @@ class Application extends App implements IBootstrap
                     $session->close();
                     if (!$this->isApiRequest()) {
                         header('Clear-Site-Data: "cache", "storage"');
-
                         header('Location: '.$logoutUrl);
-
                         exit;
                     }
                 });
