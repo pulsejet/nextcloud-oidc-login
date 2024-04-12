@@ -161,7 +161,6 @@ class Application extends App implements IBootstrap
 
     public function isApiRequest()
     {
-        // Check if the request includes an 'Accept' header with value 'application/json'
-        return isset($_SERVER['HTTP_ACCEPT']) && false !== strpos($_SERVER['HTTP_ACCEPT'], 'application/json');
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 'xmlhttprequest' === strtolower($_SERVER['HTTP_X_REQUESTED_WITH']);
     }
 }
