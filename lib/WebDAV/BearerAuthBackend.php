@@ -100,7 +100,7 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      *
      * @param string $bearerToken an OIDC JWT bearer token
      */
-    private function login(string $bearerToken)
+    public function login(string $bearerToken)
     {
         $client = $this->loginService->createOIDCClient();
         if (null === $client) {
