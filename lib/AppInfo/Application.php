@@ -20,6 +20,7 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Util;
+use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 
 class Application extends App implements IBootstrap
 {
@@ -68,6 +69,15 @@ class Application extends App implements IBootstrap
 
         /** @var IRequest */
         $request = $container->get(IRequest::class);
+        $bearerAuthBackend = $container->query(BearerAuthBackend::class);
+
+         // If it is an OCS request, try to authenticate with bearer token
+         if ($request->getHeader('OCS-APIREQUEST') === 'true' &&
+         $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true' &&
+         str_starts_with($request->getHeader('Authorization'), 'Bearer ')) {
+            $this->loginWithBearerToken($request, $bearerAuthBackend);
+        }
+
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -81,6 +91,23 @@ class Application extends App implements IBootstrap
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
         $session = $container->get(ISession::class);
+        
+        // If it is an OCS request, try to authenticate with bearer token if not logged in
+        $isBearerAuth = str_starts_with($request->getHeader('Authorization'), 'Bearer ');
+        if (!$userSession->isLoggedIn() 
+            && ($request->getHeader('OCS-APIREQUEST') === 'true')
+            && $isBearerAuth) {
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
+
+        // For non-OCS routes, perform validation even if logged in via session
+        if ($isBearerAuth && $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true') {
+            // Invalidate existing session's oidc login
+            $session->remove(self::TOKEN_LOGIN_KEY);
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
@@ -155,6 +182,21 @@ class Application extends App implements IBootstrap
 
                 exit;
             }
+        }
+    }
+
+
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session) {
+        $authHeader = $request->getHeader('Authorization');
+		$bearerToken = substr($authHeader, 7);
+        if (empty($bearerToken)) {
+            return;
+        }
+        try {
+            $bearerAuthBackend->login($bearerToken);
+            $session->set(self::TOKEN_LOGIN_KEY, 1);
+        } catch (\Exception $e) {
+            $this->logger->debug("WebDAV bearer token validation failed with: {$e->getMessage()}", $this->context);
         }
     }
 }
