@@ -6,6 +6,7 @@ namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCA\OIDCLogin\OIDCLoginOption;
+use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -18,7 +19,6 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Util;
-use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 
 class Application extends App implements IBootstrap
 {
@@ -27,6 +27,7 @@ class Application extends App implements IBootstrap
     protected IConfig $config;
 
     private $appName = 'oidc_login';
+    private const TOKEN_LOGIN_KEY = 'is_oidc_token_login';
 
     public function __construct()
     {
@@ -35,8 +36,6 @@ class Application extends App implements IBootstrap
 
     public function register(IRegistrationContext $context): void
     {
-        $context->registerAlternativeLogin(OIDCLoginOption::class);
-
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
             \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
@@ -67,15 +66,6 @@ class Application extends App implements IBootstrap
 
         /** @var IRequest */
         $request = $container->get(IRequest::class);
-        $bearerAuthBackend = $container->query(BearerAuthBackend::class);
-
-         // If it is an OCS request, try to authenticate with bearer token
-         if ($request->getHeader('OCS-APIREQUEST') === 'true' &&
-         $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true' &&
-         str_starts_with($request->getHeader('Authorization'), 'Bearer ')) {
-            $this->loginWithBearerToken($request, $bearerAuthBackend);
-        }
-
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -89,7 +79,6 @@ class Application extends App implements IBootstrap
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
         $session = $container->get(ISession::class);
-        
         // If it is an OCS request, try to authenticate with bearer token if not logged in
         $isBearerAuth = str_starts_with($request->getHeader('Authorization'), 'Bearer ');
         if (!$userSession->isLoggedIn() 
@@ -106,7 +95,7 @@ class Application extends App implements IBootstrap
             $bearerAuthBackend = $container->get(BearerAuthBackend::class);
             $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
         }
-
+        
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
             // Halt processing if not logged in with OIDC
@@ -183,7 +172,6 @@ class Application extends App implements IBootstrap
         }
     }
 
-
     private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session) {
         $authHeader = $request->getHeader('Authorization');
 		$bearerToken = substr($authHeader, 7);
@@ -194,7 +182,7 @@ class Application extends App implements IBootstrap
             $bearerAuthBackend->login($bearerToken);
             $session->set(self::TOKEN_LOGIN_KEY, 1);
         } catch (\Exception $e) {
-            $this->logger->debug("WebDAV bearer token validation failed with: {$e->getMessage()}", $this->context);
+            $this->logger->debug("OIDC Bearer token validation failed with: {$e->getMessage()}", ['app' => $this->appName]);
         }
     }
 }
