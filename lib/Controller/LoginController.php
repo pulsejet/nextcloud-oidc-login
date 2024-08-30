@@ -2,73 +2,44 @@
 
 namespace OCA\OIDCLogin\Controller;
 
+use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Files\IRootFolder;
 use OCP\IConfig;
-use OCP\IGroupManager;
-use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
-use OCP\IUserManager;
+use OCP\IUser;
 use OCP\IUserSession;
 
 class LoginController extends Controller
 {
-    /** @var IConfig */
-    private $config;
-
-    /** @var IURLGenerator */
-    private $urlGenerator;
-
-    /** @var IUserManager */
-    private $userManager;
-
-    /** @var IUserSession */
-    private $userSession;
-
-    /** @var IGroupManager */
-    private $groupManager;
-
-    /** @var ISession */
-    private $session;
-
-    /** @var LoginService */
-    private $loginService;
-
-    /** @var IL10N */
-    private $l;
-
-    /** @var \OCA\Files_External\Service\GlobalStoragesService */
-    private $storagesService;
+    private IConfig $config;
+    private IURLGenerator $urlGenerator;
+    private IUserSession $userSession;
+    private ISession $session;
+    private LoginService $loginService;
 
     public function __construct(
-        $appName,
+        string $appName,
         IRequest $request,
         IConfig $config,
         IURLGenerator $urlGenerator,
-        IUserManager $userManager,
         IUserSession $userSession,
-        IGroupManager $groupManager,
         ISession $session,
-        IL10N $l,
-        LoginService $loginService,
-        $storagesService
+        LoginService $loginService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
         $this->urlGenerator = $urlGenerator;
-        $this->userManager = $userManager;
         $this->userSession = $userSession;
-        $this->groupManager = $groupManager;
         $this->session = $session;
-        $this->l = $l;
         $this->loginService = $loginService;
-        $this->storagesService = $storagesService;
     }
 
     /**
@@ -78,7 +49,7 @@ class LoginController extends Controller
      *
      * @UseSession
      */
-    public function oidc()
+    public function oidc(): RedirectResponse
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
 
@@ -89,19 +60,14 @@ class LoginController extends Controller
             // Authenticate
             $oidc->authenticate();
 
-            $user = null;
-            if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
-                // Get user information from ID Token
-                $user = $oidc->getIdTokenPayload();
-            } else {
-                // Get user information from OIDC
-                $user = $oidc->requestUserInfo();
-            }
+            // Get user info
+            $profile = $oidc->getProfile();
 
+            // Store logout URLs in session
             $this->prepareLogout($oidc);
 
-            // Convert to PHP array and process
-            return $this->authSuccess(json_decode(json_encode($user), true));
+            // Continue with login
+            return $this->login($profile);
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
             if ($this->config->getSystemValue('oidc_login_redir_fallback', false)) {
@@ -116,16 +82,7 @@ class LoginController extends Controller
         }
     }
 
-    private function authSuccess($profile)
-    {
-        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
-            $this->session->set('login_redirect_url', $redirectUrl);
-        }
-
-        return $this->login($profile);
-    }
-
-    private function prepareLogout($oidc)
+    private function prepareLogout(OpenIDConnectClient $oidc): void
     {
         $this->session->set('oidc_sid', $oidc->getVerifiedClaims('sid'));
         
@@ -141,23 +98,24 @@ class LoginController extends Controller
         }
     }
 
-    private function login($profile)
+    private function login(array $profile): RedirectResponse
     {
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
-        list($user, $userPassword) = $this->loginService->login($profile, $this->userSession, $this->request);
+        /** @var IUser $user */
+        [$user, $password] = $this->loginService->login($profile);
 
         // Workaround to create user files folder. Remove it later.
-        \OC::$server->query(\OCP\Files\IRootFolder::class)->getUserFolder($user->getUID());
+        \OC::$server->get(IRootFolder::class)->getUserFolder($user->getUID());
 
         // Prevent being asked to change password
-        $this->session->set('last-password-confirm', \OC::$server->query(ITimeFactory::class)->getTime());
+        $this->session->set('last-password-confirm', \OC::$server->get(ITimeFactory::class)->getTime());
 
         // Go to redirection URI
-        if ($redirectUrl = $this->session->get('login_redirect_url')) {
+        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
             return new RedirectResponse($redirectUrl);
         }
 

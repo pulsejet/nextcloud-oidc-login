@@ -1,51 +1,59 @@
-<?php return array (
-  'root' => 
-  array (
-    'pretty_version' => 'dev-master',
-    'version' => 'dev-master',
-    'aliases' => 
-    array (
+<?php return array(
+    'root' => array(
+        'name' => 'oidc_login/3rdparty',
+        'pretty_version' => 'dev-master',
+        'version' => 'dev-master',
+        'reference' => '61275c808e32c718cc5de8e6104adf3ae0377045',
+        'type' => 'library',
+        'install_path' => __DIR__ . '/../',
+        'aliases' => array(),
+        'dev' => true,
     ),
-    'reference' => '16d351f39d4893c7053ae2e1a289dd0e4940f258',
-    'name' => 'oidc_login/3rdparty',
-  ),
-  'versions' => 
-  array (
-    'jumbojett/openid-connect-php' => 
-    array (
-      'pretty_version' => 'v0.9.2',
-      'version' => '0.9.2.0',
-      'aliases' => 
-      array (
-      ),
-      'reference' => '4f95102af87f86c43e8191ec6e90d9f35ed1ce5f',
+    'versions' => array(
+        'jumbojett/openid-connect-php' => array(
+            'pretty_version' => 'v0.9.10',
+            'version' => '0.9.10.0',
+            'reference' => '45aac47b525f0483dd4db3324bb1f1cab4666061',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jumbojett/openid-connect-php',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'oidc_login/3rdparty' => array(
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
+            'reference' => '61275c808e32c718cc5de8e6104adf3ae0377045',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'paragonie/constant_time_encoding' => array(
+            'pretty_version' => 'v2.6.3',
+            'version' => '2.6.3.0',
+            'reference' => '58c3f47f650c94ec05a151692652a868995d2938',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../paragonie/constant_time_encoding',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'paragonie/random_compat' => array(
+            'pretty_version' => 'v9.99.100',
+            'version' => '9.99.100.0',
+            'reference' => '996434e5492cb4c3edcb9168db6fbb1359ef965a',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../paragonie/random_compat',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phpseclib/phpseclib' => array(
+            'pretty_version' => '3.0.21',
+            'version' => '3.0.21.0',
+            'reference' => '4580645d3fc05c189024eb3b834c6c1e4f0f30a1',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpseclib/phpseclib',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
     ),
-    'oidc_login/3rdparty' => 
-    array (
-      'pretty_version' => 'dev-master',
-      'version' => 'dev-master',
-      'aliases' => 
-      array (
-      ),
-      'reference' => '16d351f39d4893c7053ae2e1a289dd0e4940f258',
-    ),
-    'paragonie/random_compat' => 
-    array (
-      'pretty_version' => 'v9.99.100',
-      'version' => '9.99.100.0',
-      'aliases' => 
-      array (
-      ),
-      'reference' => '996434e5492cb4c3edcb9168db6fbb1359ef965a',
-    ),
-    'phpseclib/phpseclib' => 
-    array (
-      'pretty_version' => '2.0.29',
-      'version' => '2.0.29.0',
-      'aliases' => 
-      array (
-      ),
-      'reference' => '497856a8d997f640b4a516062f84228a772a48a8',
-    ),
-  ),
 );

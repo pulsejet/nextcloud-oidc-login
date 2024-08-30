@@ -34,6 +34,7 @@ $config
         '@PhpCsFixer:risky' => true,
         'general_phpdoc_annotation_remove' => ['annotations' => ['expectedDeprecation']], // one should use PHPUnit built-in method instead
         'modernize_strpos' => false, // needs PHP 8+ or polyfill
+        'fully_qualified_strict_types' => false, // work with missing files
     ])
     ->setFinder($finder)
 ;

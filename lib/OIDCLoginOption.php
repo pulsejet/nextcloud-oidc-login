@@ -10,17 +10,10 @@ use OCP\IURLGenerator;
 
 class OIDCLoginOption implements IAlternativeLogin
 {
-    /** @var IURLGenerator */
-    protected $url;
-
-    /** @var IL10N */
-    protected $l;
-
-    /** @var Config */
-    protected $config;
-
-    /** @var IRequest */
-    protected $request;
+    protected IURLGenerator $url;
+    protected IL10N $l;
+    protected IConfig $config;
+    protected IRequest $request;
 
     public function __construct(
         IURLGenerator $url,
@@ -44,7 +37,7 @@ class OIDCLoginOption implements IAlternativeLogin
         return $this->getLoginLink($this->request, $this->url);
     }
 
-    public static function getLoginLink(&$request, &$url): string
+    public static function getLoginLink(IRequest $request, IURLGenerator $url): string
     {
         return $url->linkToRoute('oidc_login.login.oidc', [
             'login_redirect_url' => $request->getParam('redirect_url'),
@@ -56,7 +49,5 @@ class OIDCLoginOption implements IAlternativeLogin
         return 'oidc-button';
     }
 
-    public function load(): void
-    {
-    }
+    public function load(): void {}
 }

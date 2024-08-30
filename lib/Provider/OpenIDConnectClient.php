@@ -25,39 +25,29 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     // Don't skip Nextcloud HTTP proxy by default
     private const DEFAULT_SKIP_PROXY = false;
 
-    /** @var ISession */
-    private $session;
+    private ISession $session;
+    private IConfig $config;
+    private string $appName;
 
-    /** @var IConfig */
-    private $config;
-
-    /** @var string */
-    private $appName;
-
-    /** @var int */
-    private $publicKeyCachingTime;
-
-    /** @var int */
-    private $minTimeBetweenJwksRequests;
-
-    /** @var int */
-    private $wellKnownCachingTime;
-
-    /** var bool */
-    private $accessTokenIsJWT;
+    private int $publicKeyCachingTime;
+    private int $minTimeBetweenJwksRequests;
+    private int $wellKnownCachingTime;
+    private ?bool $accessTokenIsJWT = null;
 
     public function __construct(
-        ISession $session,
-        IConfig $config,
         string $appName,
-        $issuer = null
+        ISession $session,
+        IConfig $config
     ) {
+        $this->appName = $appName;
+        $this->session = $session;
         $this->config = $config;
+
         parent::__construct(
             $this->config->getSystemValue('oidc_login_provider_url'),
             $this->config->getSystemValue('oidc_login_client_id'),
             $this->config->getSystemValue('oidc_login_client_secret'),
-            $issuer
+            null, // issuer
         );
 
         $codeChallengeMethod = $this->config->getSystemValue('oidc_login_code_challenge_method');
@@ -73,13 +63,20 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             $this->setHttpProxy($proxy);
         }
 
-        $this->session = $session;
-        $this->appName = $appName;
         $this->publicKeyCachingTime = $this->config->getSystemValue('oidc_login_public_key_caching_time', self::DEFAULT_PUBLIC_KEY_CACHING_TIME);
         $this->minTimeBetweenJwksRequests = $this->config->getSystemValue('oidc_login_min_time_between_jwks_requests', self::DEFAULT_MIN_TIME_BETWEEN_JWKS_REQUESTS);
         $this->wellKnownCachingTime = $this->config->getSystemValue('oidc_login_well_known_caching_time', self::DEFAULT_WELL_KNOWN_CACHING_TIME);
     }
 
+    /**
+     * Verifies the signature of the given JWT string.
+     *
+     * @param string $jwt
+     *
+     * @return bool
+     *
+     * @throws \Jumbojett\OpenIDConnectClientException
+     */
     public function verifyJWTsignature($jwt)
     {
         try {
@@ -94,6 +91,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
                 return parent::verifyJWTsignature($jwt);
             }
+
             // Otherwise, rethrow error
             throw $e;
         }
@@ -102,11 +100,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     /**
      * Validates the given bearer token by checking the validity of the tokens signature and claims.
      *
-     * @param mixed $token
-     *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
-    public function validateBearerToken($token)
+    public function validateBearerToken(string $token): void
     {
         if ($this->isJWT($token)) {
             $claims = $this->decodeJWT($token, 1);
@@ -124,23 +120,42 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
     }
 
-    public function getTokenProfile($token)
+    public function getProfile(): array
+    {
+        /** @var array $profile */
+        $profile = null;
+
+        if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
+            // Get user information from ID Token
+            $profile = $this->getIdTokenPayload();
+        } else {
+            // Get user information from OIDC
+            $profile = $this->requestUserInfo();
+        }
+
+        return json_decode(json_encode($profile), true);
+    }
+
+    public function getTokenProfile(string $token): array
     {
         if ($this->isJWT($token)) {
-            return $this->decodeJWT($token, 1);
+            $jwt = $this->decodeJWT($token, 1);
+
+            // Convert stdClass to array recursively
+            return json_decode(json_encode($jwt), true);
         }
 
         $this->accessToken = $token;
 
-        return $this->requestUserInfo();
+        return $this->getProfile();
     }
 
-    public function isJWT($token)
+    public function isJWT(string $token): bool
     {
-        if (!isset($accessTokenIsJWT)) {
+        if (null === $this->accessTokenIsJWT) {
             try {
                 if (substr_count($token, '.') < 2) {
-                    $accessTokenIsJWT = false;
+                    $this->accessTokenIsJWT = false;
 
                     return false;
                 }
@@ -149,34 +164,32 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
                 $joseHeader = json_decode(\Jumbojett\base64url_decode($parts[0]));
                 if (null === $joseHeader || !property_exists($joseHeader, 'alg')) {
-                    $accessTokenIsJWT = false;
+                    $this->accessTokenIsJWT = false;
 
                     return false;
                 }
 
                 if (null === json_decode(\Jumbojett\base64url_decode($parts[1]))) {
-                    $accessTokenIsJWT = false;
+                    $this->accessTokenIsJWT = false;
 
                     return false;
                 }
 
-                $accessTokenIsJWT = true;
+                $this->accessTokenIsJWT = true;
             } catch (\Exception $e) {
-                $accessTokenIsJWT = false;
+                $this->accessTokenIsJWT = false;
             }
         }
 
-        return $accessTokenIsJWT;
+        return $this->accessTokenIsJWT;
     }
 
     /**
      * Gets the OIDC end session URL that will logout the user and redirect back to $post_logout_redirect_uri.
      *
-     * @param string $post_logout_redirect_uri post signout redirect URL
-     *
      * @return string the OIDC logout URL
      */
-    public function getEndSessionUrl($post_logout_redirect_uri)
+    public function getEndSessionUrl(string $post_logout_redirect_uri): string
     {
         $id_token_hint = $this->getIdToken();
         $end_session_endpoint = null;

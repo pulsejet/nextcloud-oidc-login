@@ -64,7 +64,9 @@ $CONFIG = array (
     //   * quota:        Nextcloud storage quota
     //   * home:         Home directory location. A symlink or external storage to this location is used
     //   * ldap_uid:     LDAP uid to search for when running in proxy mode
-    //   * groups:       Array or space separated string of NC groups for the user
+    //   * groups:       Array or space separated string of Nextcloud groups for the user.
+    //                   Note that the name here corresponds to the GID of the group and not the display name
+    //                   In the admin panel, the GID may be obtained from the URL when editing a group
     //   * login_filter: Array or space separated string. If 'oidc_login_filter_allowed_values' is
     //                      set, it is checked against these values.
     //   * photoURL:     The URL of the user avatar. The nextcloud server will download the picture
@@ -173,12 +175,12 @@ $CONFIG = array (
 
     // Use an alternative login page
     // This page will be php-included instead of a redirect if specified
-    // In the example below, the PHP file `login.php` in `assets`
-    // in nextcloud base directory will be included
+    // For example, setting it to `assets/login.php` will use that file
+    // in the nextcloud base directory
     // Note: the PHP variable $OIDC_LOGIN_URL is available for redirect URI
     // Note: you may want to try setting `oidc_login_logout_url` to your
     // base URL if you face issues regarding re-login after logout
-    'oidc_login_alt_login_page' => 'assets/login.php',
+    'oidc_login_alt_login_page' => false,
 
     // For development, you may disable TLS verification. Default value is `true`
     // which should be kept in production
@@ -217,7 +219,7 @@ $CONFIG = array (
     // The default is false.
     'oidc_login_skip_proxy' => false,
 
-    // Code challenge method for PKCE flow. 
+    // Code challenge method for PKCE flow.
     // Possible values are:
     //	- 'S256'
     //	- 'plain'

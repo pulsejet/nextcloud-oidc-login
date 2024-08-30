@@ -6,35 +6,35 @@ use OCP\IConfig;
 
 class AttributeMap
 {
-    /** @var string Unique identifier for username */
-    private $_id;
+    /** Unique identifier for username */
+    private string $_id;
 
-    /** @var string Full display name of user */
-    private $_name;
+    /** Full display name of user */
+    private string $_name;
 
-    /** @var string Email address (no overwrite if null) */
-    private $_mail;
+    /** Email address (no overwrite if null) */
+    private string $_mail;
 
-    /** @var string Usage quota for user */
-    private $_quota;
+    /** Usage quota for user */
+    private string $_quota;
 
-    /** @var string Absolute path to home directory */
-    private $_home;
+    /** Absolute path to home directory */
+    private string $_home;
 
-    /** @var string LDAP uid to search for when running in proxy mode */
-    private $_ldapUid;
+    /** LDAP uid to search for when running in proxy mode */
+    private string $_ldapUid;
 
-    /** @var string Array or space separated string of NC groups for the user */
-    private $_groups;
+    /** Array or space separated string of NC groups for the user */
+    private string $_groups;
 
-    /** @var string Array or space separated string of login filter values for the user */
-    private $_login_filter;
+    /** Array or space separated string of login filter values for the user */
+    private string $_login_filter;
 
-    /** @var string The URL of the user avatar. */
-    private $_photoUrl;
+    /** The URL of the user avatar. */
+    private string $_photoUrl;
 
-    /** @var null|string If this value is truthy, the user is added to the admin group (optional) */
-    private $_isAdmin;
+    /** If this value is truthy, the user is added to the admin group (optional) */
+    private ?string $_isAdmin = null;
 
     public function __construct(IConfig $config)
     {
@@ -70,84 +70,56 @@ class AttributeMap
 
     /**
      * Get ID from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return string
      */
-    public function id(&$profile)
+    public function id(array $profile): ?string
     {
         return self::get($this->_id, $profile);
     }
 
     /**
      * Get display name from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return string
      */
-    public function name(&$profile)
+    public function name(array $profile): ?string
     {
         return self::get($this->_name, $profile);
     }
 
     /**
      * Get email address from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function mail(&$profile)
+    public function mail(array $profile): ?string
     {
         return self::get($this->_mail, $profile);
     }
 
     /**
      * Get quota from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function quota(&$profile)
+    public function quota(array $profile): ?string
     {
         return self::get($this->_quota, $profile);
     }
 
     /**
      * Get home directory from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function home(&$profile)
+    public function home(array $profile): ?string
     {
         return self::get($this->_home, $profile);
     }
 
     /**
      * Get LDAP uid from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function ldapUid(&$profile)
+    public function ldapUid(array $profile): ?string
     {
         return self::get($this->_ldapUid, $profile);
     }
 
     /**
      * Get groups from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|array
      */
-    public function groups(&$profile)
+    public function groups(array $profile): ?array
     {
         $groups = self::get($this->_groups, $profile);
 
@@ -161,12 +133,8 @@ class AttributeMap
 
     /**
      * Get login_filter from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|array
      */
-    public function login_filter(&$profile)
+    public function login_filter(array $profile): ?array
     {
         $login_filter = self::get($this->_login_filter, $profile);
 
@@ -180,44 +148,32 @@ class AttributeMap
 
     /**
      * Get photo URL from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function photoUrl(&$profile)
+    public function photoUrl(array $profile): ?string
     {
         return self::get($this->_photoUrl, $profile);
     }
 
     /**
      * Get admin status from profile.
-     *
-     * @param mixed $profile
-     *
-     * @return null|string
      */
-    public function isAdmin(&$profile)
+    public function isAdmin(array $profile): ?string
     {
         return self::get($this->_isAdmin, $profile);
     }
 
     /**
      * Returns whether the OIDC response has the groups field in it.
-     *
-     * @param array $profile
      */
-    public function hasGroups(&$profile)
+    public function hasGroups(array $profile)
     {
         return \array_key_exists($this->_groups, $profile);
     }
 
     /**
      * Returns whether the OIDC response has the login_filter field in it.
-     *
-     * @param array $profile
      */
-    public function hasLoginFilter(&$profile)
+    public function hasLoginFilter(array $profile)
     {
         return \array_key_exists($this->_login_filter, $profile);
     }
@@ -225,12 +181,12 @@ class AttributeMap
     /**
      * Returns whether OIDC should manage the admin role with `is_admin` attribute.
      */
-    public function managesAdmin()
+    public function managesAdmin(): bool
     {
         return null !== $this->_isAdmin;
     }
 
-    private static function get($attr, &$profile)
+    private static function get(string $attr, array $profile)
     {
         if (null !== $attr && \array_key_exists($attr, $profile)) {
             return $profile[$attr];
