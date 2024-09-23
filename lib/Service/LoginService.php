@@ -395,7 +395,7 @@ class LoginService
                 $raw = curl_exec($curl);
 
                 if (200 === curl_getinfo($curl, CURLINFO_HTTP_CODE)) {
-                    $image = new \OC_Image();
+                    $image = new \OCP\Image();
                     $image->loadFromData($raw);
                     $image->centerCrop();
 
