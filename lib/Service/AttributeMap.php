@@ -18,6 +18,9 @@ class AttributeMap
     /** Email address (no overwrite if null) */
     private string $_mail;
 
+    /** Birthdate (optional) */
+    private ?string $_birthdate = null;
+
     /** Usage quota for user */
     private string $_quota;
 
@@ -49,6 +52,7 @@ class AttributeMap
             'id' => 'sub',
             'name' => 'name',
             'mail' => 'email',
+            'birthdate' => 'birthdate',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
@@ -76,6 +80,10 @@ class AttributeMap
         // Optional attributes
         if (\array_key_exists('is_admin', $attr)) {
             $this->_isAdmin = $attr['is_admin'];
+        }
+
+        if (\array_key_exists('birthdate', $attr)) {
+            $this->_birthdate = $attr['birthdate'];
         }
     }
 
@@ -117,6 +125,14 @@ class AttributeMap
     public function mail(array $profile): ?string
     {
         return self::get($this->_mail, $profile);
+    }
+
+    /**
+     * Get birthdate from profile.
+     */
+    public function birthdate(array $profile): ?string
+    {
+        return self::get($this->_birthdate, $profile);
     }
 
     /**

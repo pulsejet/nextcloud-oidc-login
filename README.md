@@ -12,6 +12,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - WebDAV endpoints `Bearer` and `Basic` authentication
 - Optional removal of special characters in UID
 - Mapping of multiple names to a single display name
+- Mapping for birthdate
 
 ## Config
 
@@ -76,6 +77,8 @@ $CONFIG = array (
     //                      at user login. This may lead to security issues. Use with care.
     //                      This will only be effective if oidc_login_update_avatar is enabled.
     //   * is_admin:     If this value is truthy, the user is added to the admin group (optional)
+    //   * birthdate:    Since attribute 'birthdate' is supported from NC version 30 onwards, this attribute
+    //                   can be mapped too.
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
@@ -115,6 +118,7 @@ $CONFIG = array (
         'id' => 'sub',
         'name' => 'name',
         'mail' => 'email',
+        'birthdate' => 'birthdate',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',

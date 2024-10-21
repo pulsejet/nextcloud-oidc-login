@@ -7,6 +7,7 @@ use OC\User\LoginException;
 use OC\User\Session;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
+use OCP\Accounts\IAccountManager;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -22,6 +23,7 @@ class LoginService
 {
     public const USER_AGENT = 'NextcloudOIDCLogin';
 
+    private IAccountManager $accountManager;
     private IAvatarManager $avatarManager;
     private IConfig $config;
     private IRequest $request;
@@ -44,7 +46,8 @@ class LoginService
         IL10N $l,
         IProvider $tokenProvider,
         LoggerInterface $logger,
-        AttributeMap $attr
+        AttributeMap $attr,
+        IAccountManager $accountManager,
     ) {
         $this->config = $config;
         $this->request = $request;
@@ -55,6 +58,7 @@ class LoginService
         $this->tokenProvider = $tokenProvider;
         $this->logger = $logger;
         $this->attr = $attr;
+        $this->accountManager = $accountManager;
 
         // get external storage service if available
         $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService')
@@ -367,6 +371,13 @@ class LoginService
             if ($user->getSystemEMailAddress() !== $mail) {
                 $user->setSystemEMailAddress((string) $mail);
             }
+        }
+
+        //Set Birthdate
+        if (null !== ($birthdate = $this->attr->birthdate($profile))) {
+            $account = $this->accountManager->getAccount($user);
+            $account->setProperty(IAccountManager::PROPERTY_BIRTHDATE, $birthdate, IAccountManager::SCOPE_LOCAL, IAccountManager::NOT_VERIFIED);
+            $this->accountManager->updateAccount($account);
         }
 
         // Set quota
