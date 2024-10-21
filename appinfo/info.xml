@@ -18,6 +18,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Automatic redirection from the nextcloud login page to the Identity Provider login page
 - WebDAV endpoints `Bearer` and `Basic` authentication
 - Optional removal of special characters in UID
+- Mapping of multiple names to a single display name
 ]]></description>
     <version>3.2.2</version>
     <licence>agpl</licence>

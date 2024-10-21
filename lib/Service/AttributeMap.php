@@ -9,8 +9,11 @@ class AttributeMap
     /** Unique identifier for username */
     private string $_id;
 
-    /** Full display name of user */
+    /** Display name of user */
     private string $_name;
+
+    /** Full display name of user (optional) */
+    private ?array $_full_name = null;
 
     /** Email address (no overwrite if null) */
     private string $_mail;
@@ -56,7 +59,6 @@ class AttributeMap
         $attr = array_merge($defattr, $confattr);
 
         $this->_id = $attr['id'];
-        $this->_name = $attr['name'];
         $this->_mail = $attr['mail'];
         $this->_quota = $attr['quota'];
         $this->_home = $attr['home'];
@@ -64,6 +66,12 @@ class AttributeMap
         $this->_groups = $attr['groups'];
         $this->_login_filter = $attr['login_filter'];
         $this->_photoUrl = $attr['photoURL'];
+
+        if (is_array($attr['name'])) {
+            $this->_full_name = $attr['name'];
+        } else {
+            $this->_name = $attr['name'];
+        }
 
         // Optional attributes
         if (\array_key_exists('is_admin', $attr)) {
@@ -96,7 +104,11 @@ class AttributeMap
      */
     public function name(array $profile): ?string
     {
-        return self::get($this->_name, $profile);
+        if (null !== $this->_full_name) {
+            return self::getFullDisplayName($this->_full_name, $profile);
+        } else {
+            return self::get($this->_name, $profile);
+        }
     }
 
     /**
@@ -208,5 +220,14 @@ class AttributeMap
         }
 
         return null;
+    }
+
+    private static function getFullDisplayName(array|string $attr, array $profile): string
+    {
+        $nameArr = array();
+        foreach ($attr as $value) {
+            $nameArr[] = self::get($value, $profile);
+        }
+        return \implode(' ', $nameArr);
     }
 }

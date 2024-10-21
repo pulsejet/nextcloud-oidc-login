@@ -11,6 +11,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Automatic redirection from the nextcloud login page to the Identity Provider login page
 - WebDAV endpoints `Bearer` and `Basic` authentication
 - Optional removal of special characters in UID
+- Mapping of multiple names to a single display name
 
 ## Config
 
@@ -58,7 +59,8 @@ $CONFIG = array (
 
     // Attribute map for OIDC response. Available keys are:
     //   * id:           Unique identifier for username
-    //   * name:         Full name
+    //   * name:         Full name, can be a string or an array of strings (use array in case family_name
+    //                   and given_name are received separately from IdP).
     //                      If set to null, existing display name won't be overwritten
     //   * mail:         Email address
     //                      If set to null, existing email address won't be overwritten
@@ -107,6 +109,7 @@ $CONFIG = array (
     // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
     //
     // note: on Keycloak, OIDC name claim = "${given_name} ${family_name}" or one of them if any is missing
+    // note: for ID Austria, OIDC name claim = array('family_name', 'given_name')
     //
     'oidc_login_attributes' => array (
         'id' => 'sub',
