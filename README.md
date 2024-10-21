@@ -10,6 +10,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Group creation
 - Automatic redirection from the nextcloud login page to the Identity Provider login page
 - WebDAV endpoints `Bearer` and `Basic` authentication
+- Optional removal of special characters in UID
 
 ## Config
 
@@ -192,6 +193,10 @@ $CONFIG = array (
 
     // Enable use of WebDAV via OIDC bearer token.
     'oidc_login_webdav_enabled' => false,
+
+    // Enable removal of special characters in UID.
+    // The default value is false.
+    'oidc_login_allow_special_characters' => true,
 
     // Enable authentication with user/password for DAV clients that do not
     // support token authentication (e.g. DAVx⁵)

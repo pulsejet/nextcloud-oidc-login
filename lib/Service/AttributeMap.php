@@ -36,8 +36,11 @@ class AttributeMap
     /** If this value is truthy, the user is added to the admin group (optional) */
     private ?string $_isAdmin = null;
 
+    private IConfig $config;
+
     public function __construct(IConfig $config)
     {
+        $this->config = $config;
         $confattr = $config->getSystemValue('oidc_login_attributes', []);
         $defattr = [
             'id' => 'sub',
@@ -69,11 +72,23 @@ class AttributeMap
     }
 
     /**
+     * Function to remove unallowed characters.
+     */
+    public function base64url_encode($data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    /**
      * Get ID from profile.
      */
     public function id(array $profile): ?string
     {
-        return self::get($this->_id, $profile);
+        if ($this->config->getSystemValue('oidc_login_allow_special_characters', false) === true) {
+            return self::base64url_encode(self::get($this->_id, $profile));
+        } else {
+            return self::get($this->_id, $profile);
+        }
     }
 
     /**
