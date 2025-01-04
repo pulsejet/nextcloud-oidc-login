@@ -25,7 +25,7 @@ class AttributeMap
     private string $_ldapUid;
 
     /** Array or space separated string of NC groups for the user */
-    private string $_groups;
+    private string|array $_groups;
 
     /** Array or space separated string of login filter values for the user */
     private string $_login_filter;
