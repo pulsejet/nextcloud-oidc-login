@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace OCA\OIDCLogin\AppInfo;
+namespace OCA\NxOIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
-use OCA\OIDCLogin\OIDCLoginOption;
-use OCA\OIDCLogin\WebDAV\BasicAuthBackend;
-use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
+use OCA\NxOIDCLogin\OIDCLoginOption;
+use OCA\NxOIDCLogin\WebDAV\BasicAuthBackend;
+use OCA\NxOIDCLogin\WebDAV\BearerAuthBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
