@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
-    <id>oidc_login</id>
-    <name>OpenID Connect Login</name>
+    <id>nx_nextcloud_oidc_login</id>
+    <name>NxCom OpenID Connect Login</name>
     <summary>Login with single OpenID Connect provider</summary>
 <description><![CDATA[
 # OpenID Connect Login
@@ -21,12 +21,12 @@ Provides user creation and login via one single OpenID Connect provider. Even th
     <version>3.2.0</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
-    <namespace>OIDCLogin</namespace>
+    <namespace>NxOIDCLogin</namespace>
     <category>integration</category>
     <category>social</category>
-    <website>https://github.com/pulsejet/nextcloud-single-openid-connect</website>
-    <bugs>https://github.com/pulsejet/nextcloud-single-openid-connect/issues</bugs>
-    <repository>https://github.com/pulsejet/nextcloud-single-openid-connect</repository>
+    <website>https://github.com/hatuan195/nx-nextcloud-oidc-login</website>
+    <bugs>https://github.com/hatuan195/nx-nextcloud-oidc-login/issues</bugs>
+    <repository>https://github.com/hatuan195/nx-nextcloud-oidc-login</repository>
     <screenshot>https://raw.githubusercontent.com/pulsejet/nextcloud-single-openid-connect/master/appinfo/screenshot.png</screenshot>
     <dependencies>
         <nextcloud min-version="26" max-version="30" />
