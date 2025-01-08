@@ -27,7 +27,7 @@ class Application extends App implements IBootstrap
     protected IL10N $l;
     protected IConfig $config;
 
-    private $appName = 'oidc_login';
+    private $appName = 'nx_nextcloud_oidc_login';
 
     public function __construct()
     {

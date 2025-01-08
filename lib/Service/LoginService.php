@@ -1,11 +1,11 @@
 <?php
 
-namespace OCA\OIDCLogin\Service;
+namespace OCA\NxOIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
 use OC\User\Session;
-use OCA\OIDCLogin\Provider\OpenIDConnectClient;
+use OCA\NxOIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
 use OCP\IAvatarManager;
 use OCP\IConfig;

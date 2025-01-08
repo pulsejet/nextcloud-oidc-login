@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\OIDCLogin\Provider;
+namespace OCA\NxOIDCLogin\Provider;
 
 require_once __DIR__.'/../../3rdparty/autoload.php';
 

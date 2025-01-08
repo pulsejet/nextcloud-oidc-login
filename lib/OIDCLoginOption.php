@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\OIDCLogin;
+namespace OCA\NxOIDCLogin;
 
 use OCP\Authentication\IAlternativeLogin;
 use OCP\IConfig;
@@ -39,7 +39,7 @@ class OIDCLoginOption implements IAlternativeLogin
 
     public static function getLoginLink(IRequest $request, IURLGenerator $url): string
     {
-        return $url->linkToRoute('oidc_login.login.oidc', [
+        return $url->linkToRoute('nx_nextcloud_oidc_login.login.oidc', [
             'login_redirect_url' => $request->getParam('redirect_url'),
         ]);
     }

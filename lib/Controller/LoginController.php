@@ -1,9 +1,9 @@
 <?php
 
-namespace OCA\OIDCLogin\Controller;
+namespace OCA\NxOIDCLogin\Controller;
 
-use OCA\OIDCLogin\Provider\OpenIDConnectClient;
-use OCA\OIDCLogin\Service\LoginService;
+use OCA\NxOIDCLogin\Provider\OpenIDConnectClient;
+use OCA\NxOIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -13,7 +13,10 @@ use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUser;
+use OCP\IUserManager;
 use OCP\IUserSession;
+use OC\Authentication\Token\IProvider;
+
 
 class LoginController extends Controller
 {
@@ -22,6 +25,7 @@ class LoginController extends Controller
     private IUserSession $userSession;
     private ISession $session;
     private LoginService $loginService;
+    private IProvider $tokenProvider;
 
     public function __construct(
         string $appName,
@@ -30,14 +34,18 @@ class LoginController extends Controller
         IURLGenerator $urlGenerator,
         IUserSession $userSession,
         ISession $session,
-        LoginService $loginService
-    ) {
+        LoginService $loginService,
+        IUserManager $userManager,
+        IProvider $tokenProvider,
+        ) {
         parent::__construct($appName, $request);
         $this->config = $config;
         $this->urlGenerator = $urlGenerator;
         $this->userSession = $userSession;
         $this->session = $session;
         $this->loginService = $loginService;
+        $this->userManager = $userManager;
+        $this->tokenProvider = $tokenProvider;
     }
 
     /**
@@ -100,6 +108,75 @@ class LoginController extends Controller
         if ($this->userSession->isLoggedIn()) {
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
+
+        // $email = $profile['email'] ?? null;
+        // if (!$email) {
+        //     throw new \Exception('Email is missing in the profile data.');
+        // }
+    
+        // $existingUser = null;
+        // foreach ($this->userManager->search('') as $user) {
+        //     if ($user->getEMailAddress() === $email) {
+        //         $existingUser = $user;
+        //         break;
+        //     }
+        // }
+    
+        // if ($existingUser) {
+        //     // Create or retrieve a valid session token
+        //     $token = $this->tokenProvider->createToken($existingUser->getUID(), $this->request->getUserAgent(), time(), []);
+        //     $this->userSession->validateToken($token->getToken());
+        //     $this->userSession->login($existingUser, null);
+    
+        //     return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
+        // }
+        // \OC::$server->getLogger()->error('Existing User data: ' . json_encode($existingUser), ['app' => 'NxOIDCLogin']);
+
+        $email = $profile['email'] ?? null;
+        if (!$email) {
+            throw new \Exception('Email is missing in the profile data.');
+        }
+    
+        $existingUser = null;
+    
+        // Search for an existing user by email
+        foreach ($this->userManager->search('') as $user) {
+            if ($user->getEMailAddress() === $email) {
+                $existingUser = $user;
+                break;
+            }
+        }
+    
+        if ($existingUser) {
+            // Manage session securely
+            if (PHP_SESSION_ACTIVE === session_status()) {
+                $this->userSession->getSession()->regenerateId();
+            }
+    
+            // Set the token provider
+            $this->userSession->setTokenProvider($this->tokenProvider);
+    
+            // Create a session token for the existing user
+            $this->userSession->createSessionToken(
+                $this->request,
+                $existingUser->getUID(),
+                $existingUser->getUID()
+            );
+    
+            // Retrieve the created token
+            $token = $this->tokenProvider->getToken($this->userSession->getSession()->getId());
+    
+            // Complete the login process using the token
+            $this->userSession->completeLogin($existingUser, [
+                'loginName' => $existingUser->getUID(),
+                'password' => '', // Empty string as a placeholder
+                'token' => $token,
+            ], false);
+    
+            return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
+        }
+    
+        throw new \Exception('User not found or unable to create a session for the user.');
 
         /** @var IUser $user */
         [$user, $password] = $this->loginService->login($profile);

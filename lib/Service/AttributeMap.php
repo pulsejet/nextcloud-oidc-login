@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\OIDCLogin\Service;
+namespace OCA\NxOIDCLogin\Service;
 
 use OCP\IConfig;
 

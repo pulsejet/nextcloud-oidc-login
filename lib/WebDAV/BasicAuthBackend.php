@@ -1,9 +1,9 @@
 <?php
 
-namespace OCA\OIDCLogin\WebDAV;
+namespace OCA\NxOIDCLogin\WebDAV;
 
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
-use OCA\OIDCLogin\Service\LoginService;
+use OCA\NxOIDCLogin\Service\LoginService;
 use OCP\Defaults;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
