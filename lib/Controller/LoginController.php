@@ -5,6 +5,8 @@ namespace OCA\OIDCLogin\Controller;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\IRootFolder;
@@ -80,8 +82,56 @@ class LoginController extends Controller
         }
     }
 
+    /**
+     * @PublicPage
+     *
+     * @NoCSRFRequired
+     *
+     * @UseSession
+     *
+     * @param mixed $sid
+     * @param mixed $iss
+     */
+    public function frontChannelLogout($sid, $iss)
+    {
+        if (!isset($sid) || !isset($iss)) {
+            return $this->getFrontChannelLogoutErrorResponse(
+                'invalid request',
+                "Missing 'sid' and 'iss' parameters"
+            );
+        }
+
+        $issuer = $this->config->getSystemValue('oidc_login_provider_url');
+        if ($iss !== $issuer) {
+            return $this->getFrontChannelLogoutErrorResponse(
+                'invalid iss',
+                'Issuer not recognized'
+            );
+        }
+
+        if (!$this->userSession->isLoggedIn()) {
+            return $this->getFrontChannelLogoutErrorResponse(
+                'user not logged',
+                'The user is not logged in Nextcloud'
+            );
+        }
+
+        if ($this->session->get('oidc_sid') !== $sid) {
+            return $this->getFrontChannelLogoutErrorResponse(
+                'invalid sid',
+                'The sid of the logout token was not found.'
+            );
+        }
+
+        $this->userSession->logout();
+
+        return new JSONResponse([], Http::STATUS_OK);
+    }
+
     private function prepareLogout(OpenIDConnectClient $oidc): void
     {
+        $this->session->set('oidc_sid', $oidc->getVerifiedClaims('sid'));
+
         if ($oidc_login_logout_url = $this->config->getSystemValue('oidc_login_logout_url', false)) {
             if ($this->config->getSystemValue('oidc_login_end_session_redirect', false)) {
                 $signout_url = $oidc->getEndSessionUrl($oidc_login_logout_url);
@@ -122,5 +172,16 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function getFrontChannelLogoutErrorResponse($error, $description)
+    {
+        return new JSONResponse(
+            [
+                'error' => $error,
+                'error_description' => $description,
+            ],
+            Http::STATUS_BAD_REQUEST,
+        );
     }
 }
