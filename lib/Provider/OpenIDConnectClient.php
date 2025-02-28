@@ -197,9 +197,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         try {
             $end_session_endpoint = $this->getProviderConfigValue('end_session_endpoint');
         } catch (\Exception $e) {
-            throw new \Exception("end_session_endpoint could not be fetched.\n".
-                                 "Your OIDC provider probably does not support logout.\n".
-                                 'Set "oidc_login_end_session_redirect" => false in Nextcloud config.');
+            throw new \Exception("end_session_endpoint could not be fetched.\n"
+                                 ."Your OIDC provider probably does not support logout.\n"
+                                 .'Set "oidc_login_end_session_redirect" => false in Nextcloud config.');
         }
 
         $signout_params = [

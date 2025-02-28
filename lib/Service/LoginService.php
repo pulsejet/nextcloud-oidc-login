@@ -57,8 +57,8 @@ class LoginService
         $this->attr = $attr;
 
         // get external storage service if available
-        $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService') ?
-            \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+        $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService')
+            ? \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
     }
 
     public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
