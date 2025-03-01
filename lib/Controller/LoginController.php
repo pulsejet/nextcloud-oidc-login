@@ -14,6 +14,9 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserSession;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\UseSession;
 
 class LoginController extends Controller
 {
@@ -40,13 +43,9 @@ class LoginController extends Controller
         $this->loginService = $loginService;
     }
 
-    /**
-     * @PublicPage
-     *
-     * @NoCSRFRequired
-     *
-     * @UseSession
-     */
+    #[PublicPage]
+    #[NoCSRFRequired]
+    #[UseSession]
     public function oidc(): RedirectResponse
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');

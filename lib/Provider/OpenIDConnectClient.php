@@ -5,6 +5,7 @@ namespace OCA\OIDCLogin\Provider;
 require_once __DIR__.'/../../3rdparty/autoload.php';
 
 use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\ISession;
 
 class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
@@ -27,6 +28,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     private ISession $session;
     private IConfig $config;
+    private IAppConfig $appConfig;
     private string $appName;
 
     private int $publicKeyCachingTime;
@@ -37,11 +39,13 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     public function __construct(
         string $appName,
         ISession $session,
-        IConfig $config
+        IConfig $config,
+        IAppConfig $appConfig
     ) {
         $this->appName = $appName;
         $this->session = $session;
         $this->config = $config;
+        $this->appConfig = $appConfig;
 
         parent::__construct(
             $this->config->getSystemValue('oidc_login_provider_url'),
@@ -85,8 +89,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             // As we are caching the JWKs, we might not know the newest ones.
             // Thus we try verifying the signature first, but if that didn't work because the
             // key couldn't be found, we fetch new ones and try again.
-            \OC::$server->getLogger()->debug("Error when verifying jwt {$e->getMessage()}");
-            if (false !== strpos($e->getMessage(), 'Unable to find a key')) {
+            \OC::$server->get(\Psr\Log\LoggerInterface::class)->debug("Error when verifying jwt {$e->getMessage()}");
+            if (false !== \strpos($e->getMessage(), 'Unable to find a key')) {
                 $this->getJWKs(true);
 
                 return parent::verifyJWTsignature($jwt);
@@ -257,11 +261,11 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      */
     private function getWellKnown(string $url)
     {
-        $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_well_known', 0);
+        $lastFetched = $this->appConfig->getValueInt($this->appName, 'last_updated_well_known', 0);
         $age = time() - $lastFetched;
 
         if ($age < $this->wellKnownCachingTime) {
-            return $this->config->getAppValue($this->appName, 'well-known');
+            return $this->appConfig->getValueString($this->appName, 'well-known');
         }
 
         $resp = parent::fetchURL($url);
@@ -269,13 +273,14 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // A successful response must use the 200 OK status code, so don't cache non-200 responses
         // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
         if (200 !== $this->getResponseCode()) {
-            \OC::$server->getLogger()->warning('Got non-200 response code when querying well-known', ['app' => $this->appName]);
+            \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
+                'Got non-200 response code when querying well-known', ['app' => $this->appName]);
 
             return $resp;
         }
 
-        $this->config->setAppValue($this->appName, 'well-known', $resp);
-        $this->config->setAppValue($this->appName, 'last_updated_well_known', time());
+        $this->appConfig->setValueString($this->appName, 'well-known', $resp);
+        $this->appConfig->setValueInt($this->appName, 'last_updated_well_known', time());
 
         return $resp;
     }
@@ -285,24 +290,25 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * This reduces the requests required to the provider and increases the response time,
      * especially when using WebDAV.
      *
-     * @param mixed $ignore_cache
+     * @param bool $ignore_cache
      *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     private function getJWKs($ignore_cache = false)
     {
-        $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_jwks', 0);
+        $lastFetched = $this->appConfig->getValueInt($this->appName, 'last_updated_jwks', 0);
 
         $keyAge = time() - $lastFetched;
 
         // Use cache
         if (!$ignore_cache && $keyAge < $this->publicKeyCachingTime) {
-            return $this->config->getAppValue($this->appName, 'jwks');
+            return $this->appConfig->getValueString($this->appName, 'jwks');
         }
 
         // Avoid DoSing the provider
         if (time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
-            \OC::$server->getLogger()->warning('Too many update signing key requests', ['app' => $this->appName]);
+            \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
+                'Too many update signing key requests', ['app' => $this->appName]);
 
             throw new \Jumbojett\OpenIDConnectClientException('Too many update signing key requests');
         }
@@ -314,13 +320,14 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // As we didn't find any specification in the standard, what 200 code it should exactly be,
         // we accept the complete range.
         if ($this->getResponseCode() < 200 || $this->getResponseCode() >= 300) {
-            \OC::$server->getLogger()->warning('Got non-200 response code when querying JWKs', ['app' => $this->appName]);
+            \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
+                'Got non-200 response code when querying JWKs', ['app' => $this->appName]);
 
             return $resp;
         }
 
-        $this->config->setAppValue($this->appName, 'jwks', $resp);
-        $this->config->setAppValue($this->appName, 'last_updated_jwks', time());
+        $this->appConfig->setValueString($this->appName, 'jwks', $resp);
+        $this->appConfig->setValueInt($this->appName, 'last_updated_jwks', time());
 
         return $resp;
     }
