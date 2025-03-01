@@ -4,8 +4,8 @@ namespace OCA\OIDCLogin\Provider;
 
 require_once __DIR__.'/../../3rdparty/autoload.php';
 
-use OCP\IConfig;
 use OCP\IAppConfig;
+use OCP\IConfig;
 use OCP\ISession;
 
 class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
@@ -90,7 +90,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             // Thus we try verifying the signature first, but if that didn't work because the
             // key couldn't be found, we fetch new ones and try again.
             \OC::$server->get(\Psr\Log\LoggerInterface::class)->debug("Error when verifying jwt {$e->getMessage()}");
-            if (false !== \strpos($e->getMessage(), 'Unable to find a key')) {
+            if (false !== strpos($e->getMessage(), 'Unable to find a key')) {
                 $this->getJWKs(true);
 
                 return parent::verifyJWTsignature($jwt);
@@ -274,7 +274,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
         if (200 !== $this->getResponseCode()) {
             \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
-                'Got non-200 response code when querying well-known', ['app' => $this->appName]);
+                'Got non-200 response code when querying well-known',
+                ['app' => $this->appName]
+            );
 
             return $resp;
         }
@@ -308,7 +310,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // Avoid DoSing the provider
         if (time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
             \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
-                'Too many update signing key requests', ['app' => $this->appName]);
+                'Too many update signing key requests',
+                ['app' => $this->appName]
+            );
 
             throw new \Jumbojett\OpenIDConnectClientException('Too many update signing key requests');
         }
@@ -321,7 +325,9 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         // we accept the complete range.
         if ($this->getResponseCode() < 200 || $this->getResponseCode() >= 300) {
             \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
-                'Got non-200 response code when querying JWKs', ['app' => $this->appName]);
+                'Got non-200 response code when querying JWKs',
+                ['app' => $this->appName]
+            );
 
             return $resp;
         }
