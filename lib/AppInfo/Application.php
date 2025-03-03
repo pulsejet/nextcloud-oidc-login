@@ -6,7 +6,7 @@ namespace OCA\OIDCLogin\AppInfo;
 
 use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCA\OIDCLogin\OIDCLoginOption;
-use OCA\OIDCLogin\WebDAV\BasicAuthBackend;
+use OCA\OIDCLogin\Service\TokenService;
 use OCA\OIDCLogin\WebDAV\BearerAuthBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -26,8 +26,11 @@ class Application extends App implements IBootstrap
     protected IURLGenerator $url;
     protected IL10N $l;
     protected IConfig $config;
+    /** @var TokenService */
+    private $tokenService;
 
     private $appName = 'oidc_login';
+    private const TOKEN_LOGIN_KEY = 'is_oidc_token_login';
 
     public function __construct()
     {
@@ -36,38 +39,35 @@ class Application extends App implements IBootstrap
 
     public function register(IRegistrationContext $context): void
     {
-        $context->registerAlternativeLogin(OIDCLoginOption::class);
-
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
-            BearerAuthBackend::class
+            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::addPlugin',
-            BearerAuthBackend::class
+            \OCA\OIDCLogin\WebDAV\BearerAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::authInit',
-            BasicAuthBackend::class
+            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
         );
 
         $context->registerEventListener(
             'OCA\DAV\Connector\Sabre::addPlugin',
-            BasicAuthBackend::class
+            \OCA\OIDCLogin\WebDAV\BasicAuthBackend::class
         );
     }
 
     public function boot(IBootContext $context): void
     {
         $container = $context->getAppContainer();
-        $this->l = $container->get(IL10N::class);
-        $this->url = $container->get(IURLGenerator::class);
-        $this->config = $container->get(IConfig::class);
-
-        /** @var IRequest */
-        $request = $container->get(IRequest::class);
+        $this->l = $container->query(IL10N::class);
+        $this->url = $container->query(IURLGenerator::class);
+        $this->config = $container->query(IConfig::class);
+        $this->tokenService = $container->query(TokenService::class);
+        $request = $container->query(IRequest::class);
 
         // Check if automatic redirection is enabled
         $useLoginRedirect = $this->config->getSystemValue('oidc_login_auto_redirect', false);
@@ -81,7 +81,23 @@ class Application extends App implements IBootstrap
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
         $session = $container->get(ISession::class);
+        // If it is an OCS request, try to authenticate with bearer token if not logged in
+        $isBearerAuth = str_starts_with($request->getHeader('Authorization'), 'Bearer ');
+        if (!$userSession->isLoggedIn() 
+            && ($request->getHeader('OCS-APIREQUEST') === 'true')
+            && $isBearerAuth) {
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
 
+        // For non-OCS routes, perform validation even if logged in via session
+        if ($isBearerAuth && $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true') {
+            // Invalidate existing session's oidc login
+            $session->remove(self::TOKEN_LOGIN_KEY);
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
+        
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
             // Halt processing if not logged in with OIDC
@@ -92,9 +108,18 @@ class Application extends App implements IBootstrap
             // Disable password confirmation for user
             $session->set('last-password-confirm', $container->get(ITimeFactory::class)->getTime());
 
+            $refreshTokensEnabled = $session->exists('oidc_refresh_tokens_enabled');
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
+                $userSession->listen('\OC\User', 'logout', function () use (&$logoutUrl, $refreshTokensEnabled, $session) {
+                    if ($refreshTokensEnabled) {
+                        // Refresh tokens before logout
+                        $this->tokenService->refreshTokens();
+                        $logoutUrl = $session->get('oidc_logout_url');
+                    }
+                });
+
                 $userSession->listen('\OC\User', 'postLogout', function () use ($logoutUrl, $session) {
                     // Do nothing if this is a CORS request
                     if ($this->getContainer()->get(ControllerMethodReflector::class)->hasAnnotation('CORS')) {
@@ -112,6 +137,10 @@ class Application extends App implements IBootstrap
                         exit;
                     }
                 });
+            }
+
+            if ($refreshTokensEnabled && !$this->tokenService->refreshTokens()) {
+                $userSession->logout();
             }
 
             // Hide password change form
@@ -158,9 +187,21 @@ class Application extends App implements IBootstrap
             }
         }
     }
-
-    public function isApiRequest()
-    {
-        return isset($_SERVER['HTTP_ACCEPT']) && false !== strpos($_SERVER['HTTP_ACCEPT'], 'application/json');
+    public function isApiRequest() {
+        // Check if the request includes an 'Accept' header with value 'application/json'
+        return isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+    }
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session) {
+        $authHeader = $request->getHeader('Authorization');
+		$bearerToken = substr($authHeader, 7);
+        if (empty($bearerToken)) {
+            return;
+        }
+        try {
+            $bearerAuthBackend->login($bearerToken);
+            $session->set(self::TOKEN_LOGIN_KEY, 1);
+        } catch (\Exception $e) {
+            $this->logger->debug("OIDC Bearer token validation failed with: {$e->getMessage()}", ['app' => $this->appName]);
+        }
     }
 }
