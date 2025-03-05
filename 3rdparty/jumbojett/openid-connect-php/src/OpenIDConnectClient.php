@@ -1242,7 +1242,7 @@ class OpenIDConnectClient
                     $fetchResult = $this->fetchURL($this->getProviderConfigValue('jwks_uri'),null,$headers);
                     $jwks = json_decode($fetchResult);
                     if ($jwks === NULL) {
-                        throw new OpenIDConnectClientException('Error decoding JSON from jwks_uri'.$fetchResult.' ]');
+                        throw new OpenIDConnectClientException('Error decoding JSON from jwks_uri');
                     }
                     $jwk = $this->getKeyForHeader($jwks->keys, $header);
                 }
