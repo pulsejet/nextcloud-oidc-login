@@ -373,7 +373,7 @@ class LoginService
             }
         }
 
-        //Set Birthdate
+        // Set Birthdate
         if (null !== ($birthdate = $this->attr->birthdate($profile))) {
             $account = $this->accountManager->getAccount($user);
             $account->setProperty(IAccountManager::PROPERTY_BIRTHDATE, $birthdate, IAccountManager::SCOPE_LOCAL, IAccountManager::NOT_VERIFIED);

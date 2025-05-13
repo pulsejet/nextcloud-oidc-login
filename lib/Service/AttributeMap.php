@@ -71,7 +71,7 @@ class AttributeMap
         $this->_login_filter = $attr['login_filter'];
         $this->_photoUrl = $attr['photoURL'];
 
-        if (is_array($attr['name'])) {
+        if (\is_array($attr['name'])) {
             $this->_full_name = $attr['name'];
         } else {
             $this->_name = $attr['name'];
@@ -89,6 +89,8 @@ class AttributeMap
 
     /**
      * Function to remove unallowed characters.
+     *
+     * @param mixed $data
      */
     public function base64url_encode($data): string
     {
@@ -100,11 +102,11 @@ class AttributeMap
      */
     public function id(array $profile): ?string
     {
-        if ($this->config->getSystemValue('oidc_login_allow_special_characters', false) === true) {
+        if (true === $this->config->getSystemValue('oidc_login_allow_special_characters', false)) {
             return self::base64url_encode(self::get($this->_id, $profile));
-        } else {
-            return self::get($this->_id, $profile);
         }
+
+        return self::get($this->_id, $profile);
     }
 
     /**
@@ -114,9 +116,9 @@ class AttributeMap
     {
         if (null !== $this->_full_name) {
             return self::getFullDisplayName($this->_full_name, $profile);
-        } else {
-            return self::get($this->_name, $profile);
         }
+
+        return self::get($this->_name, $profile);
     }
 
     /**
@@ -240,10 +242,11 @@ class AttributeMap
 
     private static function getFullDisplayName(array|string $attr, array $profile): string
     {
-        $nameArr = array();
+        $nameArr = [];
         foreach ($attr as $value) {
             $nameArr[] = self::get($value, $profile);
         }
-        return \implode(' ', $nameArr);
+
+        return implode(' ', $nameArr);
     }
 }
