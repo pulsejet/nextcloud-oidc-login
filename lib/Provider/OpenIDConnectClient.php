@@ -206,9 +206,19 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
                                  .'Set "oidc_login_end_session_redirect" => false in Nextcloud config.');
         }
 
-        $signout_params = [
-            'id_token_hint' => $id_token_hint,
-            'post_logout_redirect_uri' => $post_logout_redirect_uri, ];
+        $custom_params = $this->config->getSystemValue('oidc_login_signout_params', null);
+
+        if (!is_array($custom_params)) {
+            // Default logout params
+            $signout_params = compact('id_token_hint', 'post_logout_redirect_uri');
+        }
+        elseif (array_is_list($custom_params)) {
+            // Create logout params array containing params and their values
+            $client_id = $this->config->getSystemValue('oidc_login_client_id');
+            $logout_uri = $post_logout_redirect_uri;
+            $signout_params = compact(...$custom_params);
+        }
+
         $end_session_endpoint .= (false === strpos($end_session_endpoint, '?') ? '?' : '&').http_build_query($signout_params);
 
         return $end_session_endpoint;
