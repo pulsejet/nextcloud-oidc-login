@@ -339,7 +339,7 @@ The login filter feature will replace the deprecated `oidc_login_allowed_groups`
   array (
     'id' => 'username', // https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-usernames
   ),
-  'oidc_login_logout_url' => 'http://localhost:8080/apps/oidc_login/oidc',
+  'oidc_login_logout_url' => 'https://cloud.example.com/apps/oidc_login/oidc',
   'oidc_login_end_session_redirect' => true,
   'oidc_login_logout_params' => // https://docs.aws.amazon.com/cognito/latest/developerguide/logout-endpoint.html
   array (
