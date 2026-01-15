@@ -243,6 +243,7 @@ $CONFIG = array (
     6. Set `Claim JSON Type` as `String`.
     7. Add or edit a User and go to `Attributes`.
     8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
+    9. Disable admin-level and user-level notifications of user group membership changes ("Settings > Administration > Activity" and "Settings > Personal > Activity", respectively). Repeat the user-level setting for all existing usersin your NextCloud instance, or invite them to do so on their own (e.g. via a NextCloud Announcement). Failure to complete this step may cause a "Token is invalid" exception on the login attempt following a group membership change. 
 3. Necessary `config.php` settings (differing from above)
 ```php
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
