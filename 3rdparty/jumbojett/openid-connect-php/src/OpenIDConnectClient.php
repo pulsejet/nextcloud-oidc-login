@@ -585,13 +585,7 @@ class OpenIDConnectClient
      * @param array $scope - example: openid, given_name, etc...
      */
     public function addScope($scope) {
-        // Convert string to array of individual scopes
-        if (is_string($scope)) {
-            $scope = preg_split('/\s+/', trim($scope));
-        }
-
-        // Merge, remove duplicates, reset numeric indexes
-        $this->scopes = array_values(array_unique(array_merge($this->scopes, $scope)));
+        $this->scopes = array_merge($this->scopes, (array)$scope);
     }
 
     /**
