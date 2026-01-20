@@ -219,20 +219,22 @@ $CONFIG = array (
     // The default is false.
     'oidc_login_skip_proxy' => false,
 
-    // Code challenge method for PKCE flow.
+    // Code challenge method for PKCE flow. Recommended for enhanced security.
     // Possible values are:
     //	- 'S256'
     //	- 'plain'
     // The default value is empty, which won't apply the PKCE flow.
-    'oidc_login_code_challenge_method' => '',
+    'oidc_login_code_challenge_method' => 'S256',
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
+
 1. Create a new Client for Nextcloud in a Keycloak Realm of your choosing.
     1. Set a `Client ID` and save.
-    2. Set `Access type` to `confidential`
-	3. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/*`.
-	4. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
+    2. Enable `Client Authentication` to set it to `confidential`.
+    3. Set the `PKCE Method` to `S256`.
+	4. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/apps/oidc_login/oidc`.
+	5. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
 
 2. Open your created Client and go to `Mappers`. (optional)
     1. Click `create` and set `Mapper Type` to `User Attribute`.
@@ -243,7 +245,9 @@ $CONFIG = array (
     6. Set `Claim JSON Type` as `String`.
     7. Add or edit a User and go to `Attributes`.
     8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
+
 3. Necessary `config.php` settings (differing from above)
+
 ```php
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
 'oidc_login_client_secret' => 'secret', // Client Secret: Got to Clients -> Client -> Credentials
@@ -260,6 +264,7 @@ $CONFIG = array (
 // If you are running Nextcloud behind a reverse proxy, make sure this is set
 'overwriteprotocol' => 'https',
 ```
+
 4. (optional) Enable the [PKCE flow](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce) by setting the value `Clients` &rarr; `Your NC client` &rarr; `Advanced` &rarr; `Proof Key for Code Exchange Code Challenge Method` to `S256`. Please also set the appropriate configuration value accordingly:
 ```php
 'oidc_login_code_challenge_method' => 'S256',
@@ -295,5 +300,3 @@ The login filter feature allows to allow/deny access to nextcloud to users based
 ```
 
 The login filter feature will replace the deprecated `oidc_login_allowed_groups`, as this was limited to using groups for access control. If you want to use a group as login filter you can still achieve the same by setting `login_filter` to your groups claim and setting a corresponding `oidc_login_filter_allowed_values`.
-
-
