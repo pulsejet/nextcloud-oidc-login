@@ -206,9 +206,36 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
                                  .'Set "oidc_login_end_session_redirect" => false in Nextcloud config.');
         }
 
-        $signout_params = [
-            'id_token_hint' => $id_token_hint,
-            'post_logout_redirect_uri' => $post_logout_redirect_uri, ];
+        // Default logout params
+        $signout_params = compact('id_token_hint', 'post_logout_redirect_uri');
+        
+        // Custom logout params
+        $custom_params = $this->config->getSystemValue('oidc_login_logout_params', null);
+        if (!empty($custom_params) && array_is_list($custom_params)) {
+            // Additional parameters available
+            $client_id = $this->config->getSystemValue('oidc_login_client_id');
+            $logout_uri = $post_logout_redirect_uri;
+
+            // Validate custom parameters
+            $valid_params = [];
+            foreach ($custom_params as $param) {
+                if (isset($$param)) {
+                    $valid_params[] = $param;
+                } else {
+                    \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
+                        'Error when readind custom logout param "' . $param . '"',
+                        ['app' => $this->appName]
+                    );
+                    break;
+                    $valid_params = [];
+                }
+            }
+
+            if (!empty($valid_params)) {
+                $signout_params = compact(...$valid_params);
+            }
+        }
+
         $end_session_endpoint .= (false === strpos($end_session_endpoint, '?') ? '?' : '&').http_build_query($signout_params);
 
         return $end_session_endpoint;
