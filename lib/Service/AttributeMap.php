@@ -33,6 +33,9 @@ class AttributeMap
     /** The URL of the user avatar. */
     private string $_photoUrl;
 
+    /** Phone number (no overwrite if null) */
+    private string $_phone;
+
     /** If this value is truthy, the user is added to the admin group (optional) */
     private ?string $_isAdmin = null;
 
@@ -43,6 +46,7 @@ class AttributeMap
             'id' => 'sub',
             'name' => 'name',
             'mail' => 'email',
+            'phone' => 'phone_number',
             'quota' => 'ownCloudQuota',
             'home' => 'homeDirectory',
             'ldap_uid' => 'uid',
@@ -55,6 +59,7 @@ class AttributeMap
         $this->_id = $attr['id'];
         $this->_name = $attr['name'];
         $this->_mail = $attr['mail'];
+        $this->_phone = $attr['phone'];
         $this->_quota = $attr['quota'];
         $this->_home = $attr['home'];
         $this->_ldapUid = $attr['ldap_uid'];
@@ -90,6 +95,14 @@ class AttributeMap
     public function mail(array $profile): ?string
     {
         return self::get($this->_mail, $profile);
+    }
+
+    /**
+     * Get phone number from profile.
+     */
+    public function phone(array $profile): ?string
+    {
+        return self::get($this->_phone, $profile);
     }
 
     /**

@@ -369,6 +369,10 @@ class LoginService
             }
         }
 
+        if (null !== ($phone = $this->attr->phone($profile))) {
+            $this->updatePhoneNumber($user, (string) $phone);
+        }
+
         // Set quota
         if (null !== ($quota = $this->attr->quota($profile))) {
             $user->setQuota((string) $quota);
@@ -405,6 +409,30 @@ class LoginService
             } catch (\Exception $e) {
                 $this->logger->debug("Could not load image for {$user->getUid()} :  {$e->getMessage()}");
             }
+        }
+    }
+
+    /**
+     * Update the user's phone number.
+     */
+    private function updatePhoneNumber(IUser $user, string $phone): void
+    {
+        try {
+            $accountManager = \OC::$server->get(\OCP\Accounts\IAccountManager::class);
+            $account = $accountManager->getAccount($user);
+            $currentPhone = $account->getProperty(\OCP\Accounts\IAccountManager::PROPERTY_PHONE);
+            if ($currentPhone->getValue() === $phone) {
+                return;
+            }
+            $account->setProperty(
+                \OCP\Accounts\IAccountManager::PROPERTY_PHONE,
+                $phone,
+                $currentPhone->getScope(),
+                $currentPhone->getVerified()
+            );
+            $accountManager->updateAccount($account);
+        } catch (\Throwable $e) {
+            $this->logger->debug("Could not update phone number for {$user->getUid()} : {$e->getMessage()}");
         }
     }
 
