@@ -413,19 +413,24 @@ class LoginService
     }
 
     /**
-     * Update the user's phone number if the account API is available.
+     * Update the user's phone number.
      */
     private function updatePhoneNumber(IUser $user, string $phone): void
     {
         try {
             $accountManager = \OC::$server->get(\OCP\Accounts\IAccountManager::class);
-            $account = $accountManager->getUserAccount($user);
-            $property = $account->getProperty(\OCP\Accounts\IAccountManager::PROPERTY_PHONE);
-            if ($property->getValue() === $phone) {
+            $account = $accountManager->getAccount($user);
+            $currentPhone = $account->getProperty(\OCP\Accounts\IAccountManager::PROPERTY_PHONE);
+            if ($currentPhone->getValue() === $phone) {
                 return;
             }
-            $property->setValue($phone);
-            $accountManager->updateUserAccount($account);
+            $account->setProperty(
+                \OCP\Accounts\IAccountManager::PROPERTY_PHONE,
+                $phone,
+                $currentPhone->getScope(),
+                $currentPhone->getVerified()
+            );
+            $accountManager->updateAccount($account);
         } catch (\Throwable $e) {
             $this->logger->debug("Could not update phone number for {$user->getUid()} : {$e->getMessage()}");
         }
