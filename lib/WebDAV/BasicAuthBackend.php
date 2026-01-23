@@ -45,9 +45,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         $this->realm = $defaults->getName();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function validateUserPass($username, $password)
     {
         \OC_Util::setupFS(); // login hooks may need early access to the filesystem
@@ -107,9 +104,6 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         return $this->principalPrefix.$userId;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     private function login(string $username, string $password)
     {
         $client = $this->loginService->createOIDCClient();

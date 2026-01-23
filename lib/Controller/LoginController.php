@@ -14,15 +14,14 @@ use OCP\AppFramework\Http\Attribute\UseSession;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
-use OCP\IL10N;
 
 class LoginController extends Controller
 {
-
     /** @var IUserManager */
     private $userManager;
 
@@ -35,7 +34,6 @@ class LoginController extends Controller
     /** @var IL10N */
     private $l;
 
-   
     private IConfig $config;
     private IURLGenerator $urlGenerator;
     private IUserSession $userSession;
@@ -88,7 +86,6 @@ class LoginController extends Controller
 
             // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true), $oidc);
-
             // Get user info
             $profile = $oidc->getProfile();
 

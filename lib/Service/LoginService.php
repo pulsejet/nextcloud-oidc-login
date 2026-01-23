@@ -3,8 +3,8 @@
 namespace OCA\OIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
-use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OC\User\LoginException;
+use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -166,7 +166,7 @@ class LoginService
     {
         /** @var Session */
         $userSession = \OC::$server->get(IUserSession::class);
-//
+
         /* On the v1 route /remote.php/webdav, a default nextcloud backend
          * tries and fails to authenticate users, then close the session.
          * This is why this check is needed.
@@ -205,10 +205,9 @@ class LoginService
      * user actually exists in LDAP and return the uid.
      *
      * @return null|string LDAP user uid or null if not found
+     * @return null|string LDAP user uid or null if not found
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
-     *
-     * @return null|string LDAP user uid or null if not found
      */
     private function getLDAPUserUid(?string $ldapUid): ?string
     {
@@ -262,11 +261,10 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @return IUser Created user object
+     * @return IUser            Created user object
+     * @return false|\OCP\IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
-     *
-     * @return false|\OCP\IUser User object if created
      */
     private function createUser(string $uid, string $password): IUser
     {

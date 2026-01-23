@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace OCA\OIDCLogin\Service;
 
-use Exception;
 use OCA\OIDCLogin\Db\Entities\RefreshToken;
 use OCA\OIDCLogin\Db\Mappers\RefreshTokenMapper;
 use OCA\OIDCLogin\Events\AccessTokenUpdatedEvent;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
-use OCA\OIDCLogin\Service\LoginService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
@@ -45,7 +43,7 @@ class TokenService
     private LoginService $loginService;
 
     /** @var ICrypto */
-	private $crypto;
+    private $crypto;
 
     public function __construct(
         $appName,
@@ -119,11 +117,12 @@ class TokenService
             $tokenResponse = $oidc->getTokenResponse();
             if (!$refreshTokensDisabledExplicitly) {
                 $scopes = $oidc->getScopes();
-                
+
                 // Check if 'offline_access' scope is present
                 foreach ($scopes as $scope) {
                     if (str_contains($scope, 'offline_access')) {
                         $refreshTokensEnabled = true;
+
                         break;
                     }
                 }
@@ -151,7 +150,7 @@ class TokenService
             $this->prepareLogout($oidc);
 
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->error('token refresh failed', ['exception' => $e]);
 
             return false;
@@ -167,7 +166,7 @@ class TokenService
         $this->session->set('oidc_access_token', $tokenResponse->access_token);
 
         $this->refreshTokenMapper->deleteTokenForUser($user);
-        $userId = (string) $user->getUID();    
+        $userId = (string) $user->getUID();
         $refreshToken = $tokenResponse->refresh_token;
         $refreshToken = $this->crypto->encrypt($refreshToken);
         $newRefreshToken = new RefreshToken();

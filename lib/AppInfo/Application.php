@@ -23,14 +23,15 @@ use OCP\Util;
 
 class Application extends App implements IBootstrap
 {
+    private const TOKEN_LOGIN_KEY = 'is_oidc_token_login';
     protected IURLGenerator $url;
     protected IL10N $l;
     protected IConfig $config;
+
     /** @var TokenService */
     private $tokenService;
 
     private $appName = 'oidc_login';
-    private const TOKEN_LOGIN_KEY = 'is_oidc_token_login';
 
     public function __construct()
     {
@@ -83,21 +84,21 @@ class Application extends App implements IBootstrap
         $session = $container->get(ISession::class);
         // If it is an OCS request, try to authenticate with bearer token if not logged in
         $isBearerAuth = str_starts_with($request->getHeader('Authorization'), 'Bearer ');
-        if (!$userSession->isLoggedIn() 
-            && ($request->getHeader('OCS-APIREQUEST') === 'true')
+        if (!$userSession->isLoggedIn()
+            && ('true' === $request->getHeader('OCS-APIREQUEST'))
             && $isBearerAuth) {
             $bearerAuthBackend = $container->get(BearerAuthBackend::class);
             $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
         }
 
         // For non-OCS routes, perform validation even if logged in via session
-        if ($isBearerAuth && $request->getHeader('OIDC-LOGIN-WITH-TOKEN') === 'true') {
+        if ($isBearerAuth && 'true' === $request->getHeader('OIDC-LOGIN-WITH-TOKEN')) {
             // Invalidate existing session's oidc login
             $session->remove(self::TOKEN_LOGIN_KEY);
             $bearerAuthBackend = $container->get(BearerAuthBackend::class);
             $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
         }
-        
+
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
             // Halt processing if not logged in with OIDC
@@ -187,16 +188,21 @@ class Application extends App implements IBootstrap
             }
         }
     }
-    public function isApiRequest() {
+
+    public function isApiRequest()
+    {
         // Check if the request includes an 'Accept' header with value 'application/json'
-        return isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+        return isset($_SERVER['HTTP_ACCEPT']) && false !== strpos($_SERVER['HTTP_ACCEPT'], 'application/json');
     }
-    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session) {
+
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session)
+    {
         $authHeader = $request->getHeader('Authorization');
-		$bearerToken = substr($authHeader, 7);
+        $bearerToken = substr($authHeader, 7);
         if (empty($bearerToken)) {
             return;
         }
+
         try {
             $bearerAuthBackend->login($bearerToken);
             $session->set(self::TOKEN_LOGIN_KEY, 1);
