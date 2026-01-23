@@ -8,6 +8,9 @@ use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
 use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\UseSession;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
@@ -59,13 +62,9 @@ class LoginController extends Controller
         $this->tokenService = $tokenService;
     }
 
-    /**
-     * @PublicPage
-     *
-     * @NoCSRFRequired
-     *
-     * @UseSession
-     */
+    #[PublicPage]
+    #[NoCSRFRequired]
+    #[UseSession]
     public function oidc(): RedirectResponse
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
