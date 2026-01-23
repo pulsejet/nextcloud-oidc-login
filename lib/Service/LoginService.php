@@ -194,11 +194,10 @@ class LoginService
      * If the LDAP backend interface is enabled, make user the
      * user actually exists in LDAP and return the uid.
      *
-     * @param null|string $ldapUid
+     * @return null|string LDAP user uid or null if not found
+     * @return null|string LDAP user uid or null if not found
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
-     *
-     * @return null|string LDAP user uid or null if not found
      */
     private function getLDAPUserUid(?string $ldapUid): ?string
     {
@@ -252,11 +251,10 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @param string $uid
+     * @return IUser            Created user object
+     * @return false|\OCP\IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
-     *
-     * @return false|\OCP\IUser User object if created
      */
     private function createUser(string $uid, string $password): IUser
     {

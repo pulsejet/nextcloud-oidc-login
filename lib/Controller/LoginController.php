@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -52,6 +53,7 @@ class LoginController extends Controller
 
     /** @var \OCA\Files_External\Service\GlobalStoragesService */
     private $storagesService;
+   
 
     public function __construct(
         string $appName,
@@ -117,6 +119,16 @@ class LoginController extends Controller
             }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            $this->tokenService->prepareLogout($oidc);
+
+            // Convert to PHP array and process
+            return $this->authSuccess(json_decode(json_encode($user), true), $oidc);
+            // Get user info
+            $profile = $oidc->getProfile();
+
+>>>>>>> 178a9d3 ((fix) run php linter)
             // Store logout URLs in session
             $this->prepareLogout($oidc);
 =======

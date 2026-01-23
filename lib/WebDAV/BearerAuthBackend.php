@@ -98,14 +98,6 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         }
     }
 
-    private function setupUserFs(string $userId)
-    {
-        \OC_Util::setupFS($userId);
-        $this->session->close();
-
-        return $this->principalPrefix.$userId;
-    }
-
     /**
      * Tries to log in a user based on the given $bearerToken.
      *
@@ -123,5 +115,13 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $profile = $client->getTokenProfile($bearerToken);
 
         $this->loginService->login($profile);
+    }
+
+    private function setupUserFs(string $userId)
+    {
+        \OC_Util::setupFS($userId);
+        $this->session->close();
+
+        return $this->principalPrefix.$userId;
     }
 }

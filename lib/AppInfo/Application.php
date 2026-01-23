@@ -24,11 +24,10 @@ use OCP\Util;
 
 class Application extends App implements IBootstrap
 {
-    /** @var IL10N */
-    protected $l;
-
-    /** @var Config */
-    protected $config;
+    private const TOKEN_LOGIN_KEY = 'is_oidc_token_login';
+    protected IURLGenerator $url;
+    protected IL10N $l;
+    protected IConfig $config;
 
     /** @var TokenService */
     private $tokenService;
@@ -86,6 +85,22 @@ class Application extends App implements IBootstrap
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
         $session = $container->get(ISession::class);
+        // If it is an OCS request, try to authenticate with bearer token if not logged in
+        $isBearerAuth = str_starts_with($request->getHeader('Authorization'), 'Bearer ');
+        if (!$userSession->isLoggedIn()
+            && ('true' === $request->getHeader('OCS-APIREQUEST'))
+            && $isBearerAuth) {
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
+
+        // For non-OCS routes, perform validation even if logged in via session
+        if ($isBearerAuth && 'true' === $request->getHeader('OIDC-LOGIN-WITH-TOKEN')) {
+            // Invalidate existing session's oidc login
+            $session->remove(self::TOKEN_LOGIN_KEY);
+            $bearerAuthBackend = $container->get(BearerAuthBackend::class);
+            $this->loginWithBearerToken($request, $bearerAuthBackend, $session);
+        }
 
         // Check if the user is logged in
         if ($userSession->isLoggedIn()) {
@@ -182,6 +197,23 @@ class Application extends App implements IBootstrap
 
     public function isApiRequest()
     {
+        // Check if the request includes an 'Accept' header with value 'application/json'
         return isset($_SERVER['HTTP_ACCEPT']) && false !== strpos($_SERVER['HTTP_ACCEPT'], 'application/json');
+    }
+
+    private function loginWithBearerToken(IRequest $request, BearerAuthBackend $bearerAuthBackend, ISession $session)
+    {
+        $authHeader = $request->getHeader('Authorization');
+        $bearerToken = substr($authHeader, 7);
+        if (empty($bearerToken)) {
+            return;
+        }
+
+        try {
+            $bearerAuthBackend->login($bearerToken);
+            $session->set(self::TOKEN_LOGIN_KEY, 1);
+        } catch (\Exception $e) {
+            $this->logger->debug("OIDC Bearer token validation failed with: {$e->getMessage()}", ['app' => $this->appName]);
+        }
     }
 }
