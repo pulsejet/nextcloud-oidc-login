@@ -78,7 +78,7 @@ $CONFIG = array (
     //                      This will only be effective if oidc_login_update_avatar is enabled.
     //   * is_admin:     If this value is truthy, the user is added to the admin group (optional)
     //   * birthdate:    Since attribute 'birthdate' is supported from NC version 30 onwards, this attribute
-    //                   can be mapped too.
+    //                   can be mapped too. Accepted format: YYYY-MM-DD
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
@@ -112,7 +112,7 @@ $CONFIG = array (
     // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
     //
     // note: on Keycloak, OIDC name claim = "${given_name} ${family_name}" or one of them if any is missing
-    // note: for ID Austria, OIDC name claim = array('family_name', 'given_name')
+    // note: for other IdPs providing given name and family name separately: OIDC name claim = array('family_name', 'given_name')
     //
     'oidc_login_attributes' => array (
         'id' => 'sub',
@@ -201,9 +201,9 @@ $CONFIG = array (
     // Enable use of WebDAV via OIDC bearer token.
     'oidc_login_webdav_enabled' => false,
 
-    // Enable removal of special characters in UID.
+    // Enable removal of special characters in UID. Removal by converting to URL-safe Base64.
     // The default value is false.
-    'oidc_login_allow_special_characters' => true,
+    'oidc_login_remove_special_characters' => false,
 
     // Enable authentication with user/password for DAV clients that do not
     // support token authentication (e.g. DAVx⁵)
