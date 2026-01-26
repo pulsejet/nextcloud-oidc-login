@@ -231,22 +231,41 @@ $CONFIG = array (
 
 1. Create a new Client for Nextcloud in a Keycloak Realm of your choosing.
     1. Set a `Client ID` and save.
-    2. Enable `Client Authentication` to set it to `confidential`.
-    3. Set the `PKCE Method` to `S256`.
-	4. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/apps/oidc_login/oidc`.
-	5. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
+    1. Enable `Client Authentication` to set it to `confidential`.
+    1. Set the `PKCE Method` to `S256`.
+	1. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/apps/oidc_login/oidc`.
+	1. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
 
-2. Open your created Client and go to `Mappers`. (optional)
-    1. Click `create` and set `Mapper Type` to `User Attribute`.
-    2. Set `Name`, `User Attribute`, and `Token Claim Name` to `ownCloudQuota`.
-    3. Set `Claim JSON Type` as `String`.
-    4. Click `create` and set `Mapper Type` to `User Client Role`.
-    5. Set `Name` and `Token Claim Name` to `ownCloudGroups` and select your Client ID.
-    6. Set `Claim JSON Type` as `String`.
-    7. Add or edit a User and go to `Attributes`.
-    8. Add an `Attribute` by setting `Key` as `ownCloudQuota` and `Value` to your preferred limit (in bytes).
+1. Map Nextcloud attributes (quota, groups) OPTIONAL:
+    1. Open your created Client
+    1. Click `Roles tab > Create role`:
+        - Role name: `admin` (maps to GID of the group not display name)
+        - Description: `Nextcloud admin`
+     1. Click `Save`.
+    1. Click `[your-client-id]-dedicated`, then `Configure a new mapper  > By configuration` and select `User Client Role`.
+        1. Set:
+            - `Name`: `Nextcloud groups`.
+            - Make sure `Multivalued` is toggled.
+            - `Token Claim Name`: `nextcloud_groups`.
+            - `Claim JSON Type`: `String`.
+    1. Click `Save`.
+    1. Click `[your-client-id]-dedicated`, then `Configure a new mapper  > By configuration` select `User Attribute`.
+        1. Set:
+            - `Name`: `Nextcloud quota`.
+            - `User Attribute`: `nextcloud_quota`.
+            - `Token Claim Name`: `nextcloud_quota`.
+            - `Claim JSON Type`: `String`.
+    1. Click `Save`.
+    1. Click `Realm settings > User Profile > Create attribute`
+        - Attribute name: `nextcloud_quota`
+        - Display name: `Nextcloud quota`
+    1. Click `Create`.
+    1. Add or edit a user
+        1. Add groups on `Assign role` tab > `Assign role > Realm roles` 
+        1. Add quota on `Attributes` (in bytes).
+        1. Add line manager on `Attributes`.
 
-3. Necessary `config.php` settings (differing from above)
+1. Necessary `config.php` settings (differing from above)
 
 ```php
 'oidc_login_client_id' => 'nextcloud', // Client ID: Step 1
@@ -260,6 +279,10 @@ $CONFIG = array (
 'oidc_login_attributes' => array(
 	'id' => 'preferred_username',
 	'mail' => 'email',
+    'name' => 'name',
+    # Add groups and quota if you mapped it
+    'groups' => 'nextcloud_groups',
+    'quota' => 'nextcloud_quota',
 ),
 // If you are running Nextcloud behind a reverse proxy, make sure this is set
 'overwriteprotocol' => 'https',
