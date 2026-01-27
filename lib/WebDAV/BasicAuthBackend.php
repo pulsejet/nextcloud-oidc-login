@@ -2,18 +2,14 @@
 
 namespace OCA\OIDCLogin\WebDAV;
 
-use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\OIDCLogin\Service\LoginService;
-use OCP\Defaults;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
 use OCP\ISession;
 use OCP\IUserSession;
-use OCP\SabrePluginEvent;
 use Psr\Log\LoggerInterface;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
-use Sabre\DAV\Auth\Plugin;
 
 class BasicAuthBackend extends AbstractBasic implements IEventListener
 {
@@ -45,7 +41,7 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
         $this->principalPrefix = $principalPrefix;
 
         // setup realm
-        $defaults = new Defaults();
+        $defaults = new \OCP\Defaults();
         $this->realm = $defaults->getName();
     }
 
@@ -76,13 +72,13 @@ class BasicAuthBackend extends AbstractBasic implements IEventListener
      */
     public function handle(Event $event): void
     {
-        if (!$event instanceof SabrePluginAuthInitEvent
-            && !$event instanceof SabrePluginEvent) {
+        if (!$event instanceof \OCA\DAV\Events\SabrePluginAuthInitEvent
+            && !$event instanceof \OCP\SabrePluginEvent) {
             return;
         }
 
         $authPlugin = $event->getServer()->getPlugin('auth');
-        if ($authPlugin instanceof Plugin) {
+        if ($authPlugin instanceof \Sabre\DAV\Auth\Plugin) {
             $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
             $password_auth_enabled = $this->config->getSystemValue('oidc_login_password_authentication', false);
 

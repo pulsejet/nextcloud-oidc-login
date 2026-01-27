@@ -4,16 +4,13 @@ namespace OCA\OIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
 use OC\User\LoginException;
-use OC\User\Session;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
-use OCA\User_LDAP\IUserLDAP;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUser;
-use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -31,9 +28,6 @@ class LoginService
     private IProvider $tokenProvider;
     private LoggerInterface $logger;
     private AttributeMap $attr;
-
-    /** @var null|\OCA\Files_External\Service\GlobalStoragesService */
-    private $storagesService;
 
     public function __construct(
         IConfig $config,
@@ -133,9 +127,8 @@ class LoginService
 
         // Create user if not existing
         if (null === $user) {
-            // Generate random password of 32 characters that meets nextcloud's strictest password policy
-            $randomPassword = substr(base64_encode(random_bytes(64)), 0, 28);
-            $password = 'aA'.$randomPassword.'1$';
+            // Generate random password of 30 characters
+            $password = substr(base64_encode(random_bytes(64)), 0, 30);
 
             // Create user. This will throw if creation is not permitted.
             $user = $this->createUser($uid, $password);
@@ -212,6 +205,7 @@ class LoginService
      * user actually exists in LDAP and return the uid.
      *
      * @return null|string LDAP user uid or null if not found
+     * @return null|string LDAP user uid or null if not found
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
      */
@@ -225,7 +219,7 @@ class LoginService
         // Get the LDAP user backend
         $ldap = null;
         foreach ($this->userManager->getBackends() as $backend) {
-            /** @var IUserBackend $backend */
+            /** @var \OCP\IUserBackend $backend */
             if ($backend->getBackendName() === $this->config->getSystemValue('oidc_login_ldap_backend', 'LDAP')) {
                 $ldap = $backend;
             }
@@ -236,7 +230,7 @@ class LoginService
             throw new LoginException($this->l->t('No LDAP user backend found!'));
         }
 
-        /** @var IUserLDAP $ldap */
+        /** @var \OCA\User_LDAP\IUserLDAP $ldap */
 
         // Get LDAP Access object
         $access = $ldap->getLDAPAccess($ldapUid);
@@ -267,7 +261,8 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @return IUser Created user object
+     * @return IUser            Created user object
+     * @return false|\OCP\IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
      */
@@ -385,6 +380,11 @@ class LoginService
                 curl_setopt($curl, CURLOPT_HEADER, false);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
+                $raw = curl_exec($curl);
+                curl_close($curl);
+
+                $image = new \OC_Image();
+                $image->loadFromData($raw);
 
                 $avatar = $this->avatarManager->getAvatar($user->getUid());
                 if ($avatar) {
