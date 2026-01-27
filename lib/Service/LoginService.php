@@ -7,6 +7,7 @@ use OC\User\LoginException;
 use OC\User\Session;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
+use OCP\Accounts\IAccountManager;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -22,6 +23,7 @@ class LoginService
 {
     public const USER_AGENT = 'NextcloudOIDCLogin';
 
+    private IAccountManager $accountManager;
     private IAvatarManager $avatarManager;
     private IConfig $config;
     private IRequest $request;
@@ -44,7 +46,8 @@ class LoginService
         IL10N $l,
         IProvider $tokenProvider,
         LoggerInterface $logger,
-        AttributeMap $attr
+        AttributeMap $attr,
+        IAccountManager $accountManager,
     ) {
         $this->config = $config;
         $this->request = $request;
@@ -55,6 +58,7 @@ class LoginService
         $this->tokenProvider = $tokenProvider;
         $this->logger = $logger;
         $this->attr = $attr;
+        $this->accountManager = $accountManager;
 
         // get external storage service if available
         $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService')
@@ -369,6 +373,23 @@ class LoginService
             }
         }
 
+        // Set Birthdate
+        if (null !== ($birthdate = $this->attr->birthdate($profile))) {
+            $validateBirthdate = $this->validateBirthdate($birthdate);
+            if (null !== $validateBirthdate) {
+                $account = $this->accountManager->getAccount($user);
+                $account->setProperty(
+                    IAccountManager::PROPERTY_BIRTHDATE,
+                    $validateBirthdate,
+                    IAccountManager::SCOPE_LOCAL,
+                    IAccountManager::NOT_VERIFIED
+                );
+                $this->accountManager->updateAccount($account);
+            } else {
+                $this->logger->debug("Skipping invalid birthdate for user: {$user->getUID()}");
+            }
+        }
+
         // Set quota
         if (null !== ($quota = $this->attr->quota($profile))) {
             $user->setQuota((string) $quota);
@@ -532,5 +553,33 @@ class LoginService
         }
 
         return $result;
+    }
+
+    /**
+     * Validate and normalize birthdate according to OIDC spec.
+     * Only accepts full dates in YYYY-MM-DD format.
+     */
+    private function validateBirthdate(string $birthdate): ?string
+    {
+        $birthdate = trim($birthdate);
+
+        if (empty($birthdate)) {
+            return null;
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
+            $this->logger->debug("Birthdate must be in YYYY-MM-DD format, got: {$birthdate}");
+
+            return null;
+        }
+
+        $date = \DateTime::createFromFormat('Y-m-d', $birthdate);
+        if (!$date || $date->format('Y-m-d') !== $birthdate) {
+            $this->logger->debug("Invalid birthdate value: {$birthdate}");
+
+            return null;
+        }
+
+        return $birthdate;
     }
 }

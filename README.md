@@ -10,6 +10,9 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Group creation
 - Automatic redirection from the nextcloud login page to the Identity Provider login page
 - WebDAV endpoints `Bearer` and `Basic` authentication
+- Optional removal of special characters in UID
+- Mapping of multiple names to a single display name
+- Mapping for birthdate
 
 ## Config
 
@@ -57,7 +60,8 @@ $CONFIG = array (
 
     // Attribute map for OIDC response. Available keys are:
     //   * id:           Unique identifier for username
-    //   * name:         Full name
+    //   * name:         Full name, can be a string or an array of strings (use array in case family_name
+    //                   and given_name are received separately from IdP).
     //                      If set to null, existing display name won't be overwritten
     //   * mail:         Email address
     //                      If set to null, existing email address won't be overwritten
@@ -73,6 +77,8 @@ $CONFIG = array (
     //                      at user login. This may lead to security issues. Use with care.
     //                      This will only be effective if oidc_login_update_avatar is enabled.
     //   * is_admin:     If this value is truthy, the user is added to the admin group (optional)
+    //   * birthdate:    Since attribute 'birthdate' is supported from NC version 30 onwards, this attribute
+    //                   can be mapped too. Accepted format: YYYY-MM-DD
     //
     // The attributes in the OIDC response are flattened by adding the nested
     // array key as the prefix and an underscore. Thus,
@@ -106,11 +112,13 @@ $CONFIG = array (
     // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
     //
     // note: on Keycloak, OIDC name claim = "${given_name} ${family_name}" or one of them if any is missing
+    // note: for other IdPs providing given name and family name separately: OIDC name claim = array('family_name', 'given_name')
     //
     'oidc_login_attributes' => array (
         'id' => 'sub',
         'name' => 'name',
         'mail' => 'email',
+        'birthdate' => 'birthdate',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',
@@ -192,6 +200,10 @@ $CONFIG = array (
 
     // Enable use of WebDAV via OIDC bearer token.
     'oidc_login_webdav_enabled' => false,
+
+    // Enable removal of special characters in UID. Removal by converting to URL-safe Base64.
+    // The default value is false.
+    'oidc_login_remove_special_characters' => false,
 
     // Enable authentication with user/password for DAV clients that do not
     // support token authentication (e.g. DAVx⁵)
