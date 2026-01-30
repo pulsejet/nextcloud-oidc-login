@@ -16,6 +16,7 @@ use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
+use Psr\Log\LoggerInterface;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -31,6 +32,8 @@ class Application extends App implements IBootstrap
 
     /** @var TokenService */
     private $tokenService;
+
+    private LoggerInterface $logger;
 
     private $appName = 'oidc_login';
 
@@ -71,6 +74,7 @@ class Application extends App implements IBootstrap
         $this->url = $container->query(IURLGenerator::class);
         $this->config = $container->query(IConfig::class);
         $this->tokenService = $container->query(TokenService::class);
+        $this->logger = $container->query(LoggerInterface::class);
         $request = $container->query(IRequest::class);
 
         // Check if automatic redirection is enabled

@@ -172,9 +172,7 @@ class TokenService
     public function storeTokens(object $tokenResponse): void
     {
         $oldAccessToken = $this->session->get('oidc_access_token');
-        $this->logger->debug('old access token: '.$oldAccessToken);
-        $this->logger->debug('new access token: '.$tokenResponse->access_token);
-
+       
         $this->session->set('oidc_access_token', $tokenResponse->access_token);
         $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
 
