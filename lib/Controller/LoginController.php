@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -12,6 +15,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -20,11 +24,36 @@ use OCP\IUserSession;
 
 class LoginController extends Controller
 {
-    private IConfig $config;
-    private IURLGenerator $urlGenerator;
-    private IUserSession $userSession;
-    private ISession $session;
-    private LoginService $loginService;
+    /** @var IConfig */
+    private $config;
+
+    /** @var IURLGenerator */
+    private $urlGenerator;
+
+    /** @var IUserManager */
+    private $userManager;
+
+    /** @var IUserSession */
+    private $userSession;
+
+    /** @var IGroupManager */
+    private $groupManager;
+
+    /** @var ISession */
+    private $session;
+
+    /** @var LoginService */
+    private $loginService;
+
+    /** @var TokenService */
+    private $tokenService;
+
+    /** @var IL10N */
+    private $l;
+
+    /** @var \OCA\Files_External\Service\GlobalStoragesService */
+    private $storagesService;
+   
 
     public function __construct(
         string $appName,
@@ -33,7 +62,10 @@ class LoginController extends Controller
         IURLGenerator $urlGenerator,
         IUserSession $userSession,
         ISession $session,
-        LoginService $loginService
+        IL10N $l,
+        LoginService $loginService,
+        TokenService $tokenService,
+        $storagesService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -41,6 +73,8 @@ class LoginController extends Controller
         $this->userSession = $userSession;
         $this->session = $session;
         $this->loginService = $loginService;
+        $this->tokenService = $tokenService;
+        $this->storagesService = $storagesService;
     }
 
     #[PublicPage]
@@ -52,16 +86,54 @@ class LoginController extends Controller
 
         try {
             // Construct new client
-            $oidc = $this->loginService->createOIDCClient($callbackUrl);
+            $oidc = $this->tokenService->createOIDCClient($callbackUrl);
 
             // Authenticate
             $oidc->authenticate();
 
             // Get user info
             $profile = $oidc->getProfile();
+            $this->loginService->storeTokens($oidc->getTokenResponse());
+            $tokenResponse = $oidc->getTokenResponse();
 
+            $refreshTokensEnabled = false;
+            $refreshTokensDisabledExplicitly = $this->config->getSystemValue('oidc_refresh_tokens_disabled', false);
+
+            if (!$refreshTokensDisabledExplicitly) {
+                $scopes = $oidc->getScopes();
+                $refreshTokensEnabled = $this->shouldEnableRefreshTokens($scopes, $tokenResponse);
+            }
+
+            if ($refreshTokensEnabled) {
+                $this->session->set('oidc_refresh_tokens_enabled', 1);
+                $this->tokenService->storeTokens($tokenResponse);
+            }
+
+            $user = null;
+            if ($this->config->getSystemValue('oidc_login_use_id_token', false)) {
+                // Get user information from ID Token
+                $user = $oidc->getIdTokenPayload();
+            } else {
+                // Get user information from OIDC
+                $user = $oidc->requestUserInfo();
+            }
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            $this->tokenService->prepareLogout($oidc);
+
+            // Convert to PHP array and process
+            return $this->authSuccess(json_decode(json_encode($user), true), $oidc);
+            // Get user info
+            $profile = $oidc->getProfile();
+
+>>>>>>> 178a9d3 ((fix) run php linter)
             // Store logout URLs in session
             $this->prepareLogout($oidc);
+=======
+            $this->tokenService->prepareLogout($oidc);
+>>>>>>> 0ea84a2 (Fix logout and token refresh)
 
             // Continue with login
             return $this->login($profile);
@@ -93,7 +165,16 @@ class LoginController extends Controller
         }
     }
 
-    private function login(array $profile): RedirectResponse
+    private function authSuccess($profile)
+    {
+        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
+            $this->session->set('login_redirect_url', $redirectUrl);
+        }
+
+        return $this->login($profile);
+    }
+
+    private function login($profile, $oidc): RedirectResponse
     {
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
@@ -121,5 +202,20 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function shouldEnableRefreshTokens(array $scopes, object $tokenResponse): bool
+    {
+        foreach ($scopes as $scope) {
+            if (str_contains($scope, 'offline_access')) {
+                return true;
+            }
+        }
+
+        if (isset($tokenResponse->refresh_token) && !empty($tokenResponse->refresh_token)) {
+            return true;
+        }
+
+        return false;
     }
 }

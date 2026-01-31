@@ -236,7 +236,11 @@ $CONFIG = array (
     //	- 'S256'
     //	- 'plain'
     // The default value is empty, which won't apply the PKCE flow.
-    'oidc_login_code_challenge_method' => 'S256',
+    'oidc_login_code_challenge_method' => '',
+
+    // If you want to explicitly disable usage of access/refresh
+    // tokens. Defaults to false.
+    'oidc_refresh_tokens_disabled' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)

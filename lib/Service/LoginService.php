@@ -65,28 +65,7 @@ class LoginService
             ? \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
     }
 
-    public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
-    {
-        $oidc = \OC::$server->get(OpenIDConnectClient::class);
-        $oidc->setRedirectURL($callbackUrl);
-
-        // set TLS development mode
-        $oidc->setVerifyHost($this->config->getSystemValue('oidc_login_tls_verify', true));
-        $oidc->setVerifyPeer($this->config->getSystemValue('oidc_login_tls_verify', true));
-
-        // Set OpenID Connect Scope
-        $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
-        $oidc->addScope($scope);
-
-        return $oidc;
-    }
-
-    /**
-     * Log in the user using the provided profile.
-     *
-     * @return array [\OCP\IUser user, string password]
-     */
-    public function login(array $profile): array
+    public function login($profile, $userSession, $request)
     {
         // Flatten the profile array
         $profile = $this->flatten($profile);
@@ -216,6 +195,7 @@ class LoginService
      * user actually exists in LDAP and return the uid.
      *
      * @return null|string LDAP user uid or null if not found
+     * @return null|string LDAP user uid or null if not found
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
      */
@@ -271,7 +251,8 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @return IUser Created user object
+     * @return IUser            Created user object
+     * @return false|\OCP\IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
      */
