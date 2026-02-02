@@ -28,7 +28,6 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     private ISession $session;
     private IConfig $config;
-    private IAppConfig $appConfig;
     private string $appName;
 
     private int $publicKeyCachingTime;
@@ -39,13 +38,11 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     public function __construct(
         string $appName,
         ISession $session,
-        IConfig $config,
-        IAppConfig $appConfig
+        IConfig $config
     ) {
         $this->appName = $appName;
         $this->session = $session;
         $this->config = $config;
-        $this->appConfig = $appConfig;
 
         parent::__construct(
             $this->config->getSystemValue('oidc_login_provider_url'),
@@ -89,7 +86,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             // As we are caching the JWKs, we might not know the newest ones.
             // Thus we try verifying the signature first, but if that didn't work because the
             // key couldn't be found, we fetch new ones and try again.
-            \OC::$server->get(\Psr\Log\LoggerInterface::class)->debug("Error when verifying jwt {$e->getMessage()}");
+            \OC::$server->getLogger()->debug("Error when verifying jwt {$e->getMessage()}");
             if (false !== strpos($e->getMessage(), 'Unable to find a key')) {
                 $this->getJWKs(true);
 
@@ -108,7 +105,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      */
     public function validateBearerToken(string $token): void
     {
-        if ($this->isJWT($token)) {
+        $alwaysIntrospect = $this->config->getSystemValue('oidc_login_always_introspect_bearer', true);
+        if (!$alwaysIntrospect && $this->isJWT($token)) {
             $claims = $this->decodeJWT($token, 1);
         } else {
             $claims = $this->introspectToken($token);
@@ -197,6 +195,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     {
         $id_token_hint = $this->getIdToken();
         $end_session_endpoint = null;
+        $client_id = $this->getClientID();
 
         try {
             $end_session_endpoint = $this->getProviderConfigValue('end_session_endpoint');
@@ -207,11 +206,21 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
 
         $signout_params = [
-            'id_token_hint' => $id_token_hint,
             'post_logout_redirect_uri' => $post_logout_redirect_uri, ];
+
+        if (isset($id_token_hint) && null !== $id_token_hint) {
+            $signout_params['id_token_hint'] = $id_token_hint;
+        } else {
+            $signout_params['client_id'] = $client_id;
+        }
+
         $end_session_endpoint .= (false === strpos($end_session_endpoint, '?') ? '?' : '&').http_build_query($signout_params);
 
         return $end_session_endpoint;
+    }
+
+    public function getUserId(): ?string {
+        return $this->getVerifiedClaims('sub');
     }
 
     protected function getSessionKey($key)
@@ -261,11 +270,11 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      */
     private function getWellKnown(string $url)
     {
-        $lastFetched = $this->appConfig->getValueInt($this->appName, 'last_updated_well_known', 0);
+        $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_well_known', 0);
         $age = time() - $lastFetched;
 
         if ($age < $this->wellKnownCachingTime) {
-            return $this->appConfig->getValueString($this->appName, 'well-known');
+            return $this->config->getAppValue($this->appName, 'well-known');
         }
 
         $resp = parent::fetchURL($url);
@@ -281,8 +290,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             return $resp;
         }
 
-        $this->appConfig->setValueString($this->appName, 'well-known', $resp);
-        $this->appConfig->setValueInt($this->appName, 'last_updated_well_known', time());
+        $this->config->setAppValue($this->appName, 'well-known', $resp);
+        $this->config->setAppValue($this->appName, 'last_updated_well_known', time());
 
         return $resp;
     }
@@ -292,24 +301,24 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      * This reduces the requests required to the provider and increases the response time,
      * especially when using WebDAV.
      *
-     * @param bool $ignore_cache
+     * @param mixed $ignore_cache
      *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
     private function getJWKs($ignore_cache = false)
     {
-        $lastFetched = $this->appConfig->getValueInt($this->appName, 'last_updated_jwks', 0);
+        $lastFetched = $this->config->getAppValue($this->appName, 'last_updated_jwks', 0);
 
         $keyAge = time() - $lastFetched;
 
         // Use cache
         if (!$ignore_cache && $keyAge < $this->publicKeyCachingTime) {
-            return $this->appConfig->getValueString($this->appName, 'jwks');
+            return $this->config->getAppValue($this->appName, 'jwks');
         }
 
         // Avoid DoSing the provider
         if (time() - $lastFetched < $this->minTimeBetweenJwksRequests) {
-            \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
+           \OC::$server->get(\Psr\Log\LoggerInterface::class)->warning(
                 'Too many update signing key requests',
                 ['app' => $this->appName]
             );
@@ -332,8 +341,8 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
             return $resp;
         }
 
-        $this->appConfig->setValueString($this->appName, 'jwks', $resp);
-        $this->appConfig->setValueInt($this->appName, 'last_updated_jwks', time());
+        $this->config->setAppValue($this->appName, 'jwks', $resp);
+        $this->config->setAppValue($this->appName, 'last_updated_jwks', time());
 
         return $resp;
     }

@@ -2,19 +2,15 @@
 
 namespace OCA\OIDCLogin\WebDAV;
 
-use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\OIDCLogin\Service\LoginService;
-use OCP\Defaults;
 use OCA\OIDCLogin\Service\TokenService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
 use OCP\ISession;
 use OCP\IUserSession;
-use OCP\SabrePluginEvent;
 use Psr\Log\LoggerInterface;
 use Sabre\DAV\Auth\Backend\AbstractBearer;
-use Sabre\DAV\Auth\Plugin;
 
 class BearerAuthBackend extends AbstractBearer implements IEventListener
 {
@@ -26,9 +22,6 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
     private LoginService $loginService;
     private string $principalPrefix;
 
-    /** @var TokenService */
-    private $tokenService;
-
     /**
      * @param string $principalPrefix
      */
@@ -39,7 +32,6 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         IConfig $config,
         LoggerInterface $logger,
         LoginService $loginService,
-        TokenService $tokenService,
         $principalPrefix = 'principals/users/'
     ) {
         $this->appName = $appName;
@@ -48,14 +40,16 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $this->config = $config;
         $this->logger = $logger;
         $this->loginService = $loginService;
-        $this->tokenService = $tokenService;
         $this->principalPrefix = $principalPrefix;
 
         // setup realm
-        $defaults = new Defaults();
+        $defaults = new \OCP\Defaults();
         $this->realm = $defaults->getName();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function validateBearerToken($bearerToken)
     {
         \OC_Util::setupFS(); // login hooks may need early access to the filesystem
@@ -83,13 +77,13 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
      */
     public function handle(Event $event): void
     {
-        if (!$event instanceof SabrePluginAuthInitEvent
-            && !$event instanceof SabrePluginEvent) {
+        if (!$event instanceof \OCA\DAV\Events\SabrePluginAuthInitEvent
+            && !$event instanceof \OCP\SabrePluginEvent) {
             return;
         }
 
         $authPlugin = $event->getServer()->getPlugin('auth');
-        if ($authPlugin instanceof Plugin) {
+        if ($authPlugin instanceof \Sabre\DAV\Auth\Plugin) {
             $webdav_enabled = $this->config->getSystemValue('oidc_login_webdav_enabled', false);
 
             if ($webdav_enabled) {
@@ -98,14 +92,22 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         }
     }
 
+    private function setupUserFs(string $userId)
+    {
+        \OC_Util::setupFS($userId);
+        $this->session->close();
+
+        return $this->principalPrefix.$userId;
+    }
+
     /**
      * Tries to log in a user based on the given $bearerToken.
      *
      * @param string $bearerToken an OIDC JWT bearer token
      */
-    private function login(string $bearerToken)
+    public function login(string $bearerToken)
     {
-        $client = $this->tokenService->createOIDCClient();
+        $client = $this->loginService->createOIDCClient();
         if (null === $client) {
             throw new \Exception("Couldn't create OIDC client!");
         }
@@ -115,13 +117,5 @@ class BearerAuthBackend extends AbstractBearer implements IEventListener
         $profile = $client->getTokenProfile($bearerToken);
 
         $this->loginService->login($profile);
-    }
-
-    private function setupUserFs(string $userId)
-    {
-        \OC_Util::setupFS($userId);
-        $this->session->close();
-
-        return $this->principalPrefix.$userId;
     }
 }

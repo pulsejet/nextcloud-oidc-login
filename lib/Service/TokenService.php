@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\OIDCLogin\Service;
 
+use OCA\OIDCLogin\AppInfo\Application;
 use OCA\OIDCLogin\Db\Entities\RefreshToken;
 use OCA\OIDCLogin\Db\Mappers\RefreshTokenMapper;
 use OCA\OIDCLogin\Events\AccessTokenUpdatedEvent;
@@ -14,6 +15,9 @@ use OCP\IConfig;
 use OCP\ILogger;
 use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUser;
+use OCP\IUserSession;
+use OCP\Security\ICrypto;
 
 class TokenService
 {
@@ -47,13 +51,12 @@ class TokenService
         ISession $session,
         IConfig $config,
         IURLGenerator $urlGenerator,
-        LoggerInterface $logger,
+        ILogger $logger,
         IEventDispatcher $dispatcher,
         RefreshTokenMapper $refreshTokenMapper,
         IUserSession $userSession,
         LoginService $loginService,
         ICrypto $crypto
-
     ) {
         $this->appName = $appName;
         $this->session = $session;
@@ -65,32 +68,6 @@ class TokenService
         $this->loginService = $loginService;
         $this->userSession = $userSession;
         $this->crypto = $crypto;
-
-    }
-
-    /**
-     * @param string $callbackUrl
-     *
-     * @return OpenIDConnectClient Configured instance of OpendIDConnectClient
-     */
-    public function createOIDCClient($callbackUrl = '')
-    {
-        $oidc = new OpenIDConnectClient(
-            $this->session,
-            $this->config,
-            $this->appName,
-        );
-        $oidc->setRedirectURL($callbackUrl);
-
-        // set TLS development mode
-        $oidc->setVerifyHost($this->config->getSystemValue('oidc_login_tls_verify', true));
-        $oidc->setVerifyPeer($this->config->getSystemValue('oidc_login_tls_verify', true));
-
-        // Set OpenID Connect Scope
-        $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
-        $oidc->addScope($scope);
-
-        return $oidc;
     }
 
     /**
@@ -98,20 +75,35 @@ class TokenService
      */
     public function refreshTokens(): bool
     {
+        $user = $this->userSession->getUser();
+
+        if (!$user instanceof IUser) {
+            return false;
+        }
+        $userId = (string) $user->getUID();
         $accessTokenExpiresAt = $this->session->get('oidc_access_token_expires_at');
         $now = time();
         // If access token hasn't expired yet
         $this->logger->debug('checking if token should be refreshed', ['expires' => $accessTokenExpiresAt]);
 
-        if (!empty($accessTokenExpiresAt) && $now < $accessTokenExpiresAt) {
+        // Give 10 seconds buffer just in case
+        if (!empty($accessTokenExpiresAt) && $now < $accessTokenExpiresAt - 10) {
             $this->logger->debug('no token expiration or not yet expired');
 
             return true;
         }
 
-        $refreshToken = $this->session->get('oidc_refresh_token');
-        // If refresh token doesn't exist or refresh token has expired
-        if (empty($refreshToken)) {
+        // To check if refresh tokens are enabled or not
+        $refreshTokensDisabledExplicitly = $this->config->getSystemValue('oidc_login_refresh_tokens_disabled', false);
+        if ($refreshTokensDisabledExplicitly) {
+            return false;
+        }
+
+        try {
+            $encryptedrefreshToken = $this->refreshTokenMapper->getTokenByUser($user)->getToken();
+            $refreshToken = $this->crypto->decrypt($encryptedrefreshToken);
+        } catch (DoesNotExistException) {
+            // If refresh token doesn't
             $this->logger->debug('refresh token not found');
 
             return false;
@@ -123,40 +115,38 @@ class TokenService
         $this->logger->debug('refreshing token');
 
         try {
+            // retrieve the refreshed tokens from OIDC provider
             $oidc = $this->loginService->createOIDCClient($callbackUrl);
+            $tokenResponse = $oidc->refreshToken($refreshToken);
+            if (isset($tokenResponse->error)) {
+                $this->logger->error('Error refreshing token for user '.$user->getUID(), ['exception' => $tokenResponse->error]);
 
-            // To check if refresh tokens are enabled or not
-            $refreshTokensEnabled = false;
-            $refreshTokensDisabledExplicitly = $this->config->getSystemValue('oidc_refresh_tokens_disabled', false);
-
-            $tokenResponse = $oidc->getTokenResponse();
-            if (!$refreshTokensDisabledExplicitly) {
-                $scopes = $oidc->getScopes();
-
-                // Check if 'offline_access' scope is present
-                foreach ($scopes as $scope) {
-                    if (str_contains($scope, 'offline_access')) {
-                        $refreshTokensEnabled = true;
-
-                        break;
-                    }
-                }
-
-                // Check if the refresh token itself is present and not empty
-                if (isset($tokenResponse->refresh_token) && !empty($tokenResponse->refresh_token)) {
-                    $refreshTokensEnabled = true;
-                }
-            }
-
-            if ($refreshTokensEnabled) {
-                $this->session->set('oidc_refresh_tokens_enabled', 1);
-                $this->updateTokens($user, $tokenResponse);
-            } else {
                 return false;
             }
 
-            $tokenResponse = $oidc->refreshToken($refreshToken);
-            $this->storeTokens($tokenResponse);
+            $refreshTokensEnabled = false;
+
+            // Check if 'offline_access' scope is present
+            $scopes = $oidc->getScopes();
+            foreach ($scopes as $scope) {
+                if (str_contains($scope, 'offline_access')) {
+                    $refreshTokensEnabled = true;
+
+                    break;
+                }
+            }
+
+            // Check if the refresh token itself is present and not empty
+            if (isset($tokenResponse->refresh_token) && !empty($tokenResponse->refresh_token)) {
+                $refreshTokensEnabled = true;
+            }
+
+            if (!$refreshTokensEnabled) {
+                return false;
+            }
+
+            $this->session->set('oidc_refresh_tokens_enabled', 1);
+            $this->updateTokens($user, $tokenResponse);
             $this->logger->debug('token refreshed');
 
             $this->prepareLogout($oidc);
@@ -169,12 +159,13 @@ class TokenService
         }
     }
 
-    public function storeTokens(object $tokenResponse): void
+    public function updateTokens(IUser $user, object $tokenResponse): void
     {
         $oldAccessToken = $this->session->get('oidc_access_token');
-       
+        $this->logger->debug('old access token: '.$oldAccessToken);
+        $this->logger->debug('new access token: '.$tokenResponse->access_token);
+
         $this->session->set('oidc_access_token', $tokenResponse->access_token);
-        $this->session->set('oidc_refresh_token', $tokenResponse->refresh_token);
 
         $this->refreshTokenMapper->deleteTokenForUser($user);
         $userId = (string) $user->getUID();
@@ -204,5 +195,20 @@ class TokenService
         } else {
             $this->session->set('oidc_logout_url', false);
         }
+    }
+
+    public function persistOIDCProviderUID(IUser $user, OpenIDConnectClient $oidc) {
+        $userId = (string) $user->getUID();
+        $savedOIDCUid = $this->config->getUserValue($userId, Application::APP_ID, Application::OIDC_PROVIDER_UID_KEY);
+        if ($savedOIDCUid !== null && trim($savedOIDCUid) !== '') {
+            return;
+        }
+
+        $oidcUid = $oidc->getUserId();
+        if ($oidcUid === null || trim($oidcUid) === '') {
+            return;
+        }
+
+        $this->config->setUserValue($userId, Application::APP_ID, Application::OIDC_PROVIDER_UID_KEY, $oidcUid);
     }
 }
