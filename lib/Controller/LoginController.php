@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OCA\OIDCLogin\Controller;
 
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\OIDCLogin\Service\LoginService;
+use OCA\OIDCLogin\Service\TokenService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -12,6 +15,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -20,6 +24,18 @@ use OCP\IUserSession;
 
 class LoginController extends Controller
 {
+    /** @var IUserManager */
+    private $userManager;
+
+    /** @var IGroupManager */
+    private $groupManager;
+
+    /** @var TokenService */
+    private $tokenService;
+
+    /** @var IL10N */
+    private $l;
+
     private IConfig $config;
     private IURLGenerator $urlGenerator;
     private IUserSession $userSession;
@@ -33,7 +49,9 @@ class LoginController extends Controller
         IURLGenerator $urlGenerator,
         IUserSession $userSession,
         ISession $session,
-        LoginService $loginService
+        IL10N $l,
+        LoginService $loginService,
+        TokenService $tokenService
     ) {
         parent::__construct($appName, $request);
         $this->config = $config;
@@ -41,11 +59,16 @@ class LoginController extends Controller
         $this->userSession = $userSession;
         $this->session = $session;
         $this->loginService = $loginService;
+        $this->tokenService = $tokenService;
     }
 
-    #[PublicPage]
-    #[NoCSRFRequired]
-    #[UseSession]
+    /**
+     * @PublicPage
+     *
+     * @NoCSRFRequired
+     *
+     * @UseSession
+     */
     public function oidc(): RedirectResponse
     {
         $callbackUrl = $this->urlGenerator->linkToRouteAbsolute($this->appName.'.login.oidc');
@@ -56,7 +79,7 @@ class LoginController extends Controller
 
             // Authenticate
             $oidc->authenticate();
-
+            $user = null;
             // Get user info
             $profile = $oidc->getProfile();
 
@@ -64,7 +87,7 @@ class LoginController extends Controller
             $this->prepareLogout($oidc);
 
             // Continue with login
-            return $this->login($profile);
+            return $this->login($profile, $oidc);
         } catch (\Exception $e) {
             // Go to noredir page if fallback enabled
             if ($this->config->getSystemValue('oidc_login_redir_fallback', false)) {
@@ -77,6 +100,15 @@ class LoginController extends Controller
             // Show error page
             \OC_Template::printErrorPage($e->getMessage());
         }
+    }
+
+    private function authSuccess($profile, $oidc)
+    {
+        if ($redirectUrl = $this->request->getParam('login_redirect_url')) {
+            $this->session->set('login_redirect_url', $redirectUrl);
+        }
+
+        return $this->login($profile, $oidc);
     }
 
     private function prepareLogout(OpenIDConnectClient $oidc): void
@@ -93,7 +125,7 @@ class LoginController extends Controller
         }
     }
 
-    private function login(array $profile): RedirectResponse
+    private function login($profile, $oidc): RedirectResponse
     {
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
@@ -102,6 +134,22 @@ class LoginController extends Controller
 
         /** @var IUser $user */
         [$user, $password] = $this->loginService->login($profile);
+
+        $refreshTokensEnabled = false;
+        $refreshTokensDisabledExplicitly = $this->config->getSystemValue('oidc_login_refresh_tokens_disabled', false);
+
+        $tokenResponse = $oidc->getTokenResponse();
+        if (!$refreshTokensDisabledExplicitly) {
+            $scopes = $oidc->getScopes();
+            $refreshTokensEnabled = $this->shouldEnableRefreshTokens($scopes, $tokenResponse);
+        }
+
+        if ($refreshTokensEnabled) {
+            $this->session->set('oidc_refresh_tokens_enabled', 1);
+            $this->tokenService->updateTokens($user, $tokenResponse);
+        }
+
+        $this->tokenService->persistOIDCProviderUID($user, $oidc);
 
         // Workaround to create user files folder. Remove it later.
         \OC::$server->get(IRootFolder::class)->getUserFolder($user->getUID());
@@ -121,5 +169,20 @@ class LoginController extends Controller
         }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL($redir));
+    }
+
+    private function shouldEnableRefreshTokens(array $scopes, object $tokenResponse): bool
+    {
+        foreach ($scopes as $scope) {
+            if (str_contains($scope, 'offline_access')) {
+                return true;
+            }
+        }
+
+        if (isset($tokenResponse->refresh_token) && !empty($tokenResponse->refresh_token)) {
+            return true;
+        }
+
+        return false;
     }
 }

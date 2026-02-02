@@ -3,11 +3,13 @@
 namespace OCA\OIDCLogin\Service;
 
 use OC\Authentication\Token\IProvider;
+use OC\Http\CookieHelper;
 use OC\User\LoginException;
-use OC\User\Session;
+use OCA\Files_External\Service\GlobalStoragesService;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
 use OCP\Accounts\IAccountManager;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -33,9 +35,7 @@ class LoginService
     private IProvider $tokenProvider;
     private LoggerInterface $logger;
     private AttributeMap $attr;
-
-    /** @var null|\OCA\Files_External\Service\GlobalStoragesService */
-    private $storagesService;
+    private ITimeFactory $timeFactory;
 
     public function __construct(
         IConfig $config,
@@ -48,6 +48,7 @@ class LoginService
         LoggerInterface $logger,
         AttributeMap $attr,
         IAccountManager $accountManager,
+        ITimeFactory $timeFactory
     ) {
         $this->config = $config;
         $this->request = $request;
@@ -59,10 +60,11 @@ class LoginService
         $this->logger = $logger;
         $this->attr = $attr;
         $this->accountManager = $accountManager;
+        $this->timeFactory = $timeFactory;
 
         // get external storage service if available
         $this->storagesService = class_exists('\OCA\Files_External\Service\GlobalStoragesService')
-            ? \OC::$server->get(\OCA\Files_External\Service\GlobalStoragesService::class) : null;
+            ? \OC::$server->get(GlobalStoragesService::class) : null;
     }
 
     public function createOIDCClient(string $callbackUrl = ''): OpenIDConnectClient
@@ -209,12 +211,48 @@ class LoginService
             $method->setAccessible(true);
             $method->invoke($userSession, true, false);
         }
+
+        if (!isset($_COOKIE['nc_username'])
+            || !isset($_COOKIE['nc_token'])
+            || !isset($_COOKIE['nc_session_id'])) {
+            $userSession->createRememberMeToken($user);
+        }
+
+        $this->setOidcRememberMeCookie($user);
+    }
+
+    public function unsetOidcRememberMeCookie()
+    {
+        $secureCookie = 'https' === \OC::$server->getRequest()->getServerProtocol();
+        unset($_COOKIE['oidc_user']);
+        setcookie('oidc_user', '', $this->timeFactory->getTime() - 3600, \OC::$WEBROOT, '', $secureCookie, true);
+    }
+
+    private function setOidcRememberMeCookie(IUser $user): void
+    {
+        $secureCookie = 'https' === \OC::$server->getRequest()->getServerProtocol();
+        $webRoot = \OC::$WEBROOT;
+        if ('' === $webRoot) {
+            $webRoot = '/';
+        }
+        $maxAge = $this->config->getSystemValueInt('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
+        CookieHelper::setCookie(
+            'oidc_user',
+            $user->getUID(),
+            $maxAge,
+            $webRoot,
+            '',
+            $secureCookie,
+            true,
+            CookieHelper::SAMESITE_LAX
+        );
     }
 
     /**
      * If the LDAP backend interface is enabled, make user the
      * user actually exists in LDAP and return the uid.
      *
+     * @return null|string LDAP user uid or null if not found
      * @return null|string LDAP user uid or null if not found
      *
      * @throws LoginException if LDAP backend is not enabled or user is not found
@@ -271,7 +309,8 @@ class LoginService
     /**
      * Create a user if we are allowed to do that.
      *
-     * @return IUser Created user object
+     * @return IUser       Created user object
+     * @return false|IUser User object if created
      *
      * @throws LoginException If oidc_login_disable_registration is true
      */
@@ -389,7 +428,6 @@ class LoginService
                 $this->logger->debug("Skipping invalid birthdate for user: {$user->getUID()}");
             }
         }
-
         // Set quota
         if (null !== ($quota = $this->attr->quota($profile))) {
             $user->setQuota((string) $quota);
@@ -406,6 +444,11 @@ class LoginService
                 curl_setopt($curl, CURLOPT_HEADER, false);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl, CURLOPT_USERAGENT, self::USER_AGENT);
+                $raw = curl_exec($curl);
+                curl_close($curl);
+
+                $image = new \OC_Image();
+                $image->loadFromData($raw);
 
                 $avatar = $this->avatarManager->getAvatar($user->getUid());
                 if ($avatar) {
@@ -416,7 +459,7 @@ class LoginService
                 $raw = curl_exec($curl);
 
                 if (200 === curl_getinfo($curl, CURLINFO_HTTP_CODE)) {
-                    $image = new \OCP\Image();
+                    $image = new \OC_Image();
                     $image->loadFromData($raw);
                     $image->centerCrop();
 

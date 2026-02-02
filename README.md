@@ -201,6 +201,9 @@ $CONFIG = array (
     // Enable use of WebDAV via OIDC bearer token.
     'oidc_login_webdav_enabled' => false,
 
+    // Whether or not to allways introspect bearer token during validation.
+    'oidc_login_always_introspect_bearer' => true,
+
     // Enable removal of special characters in UID. Removal by converting to URL-safe Base64.
     // The default value is false.
     'oidc_login_remove_special_characters' => false,
@@ -236,7 +239,11 @@ $CONFIG = array (
     //	- 'S256'
     //	- 'plain'
     // The default value is empty, which won't apply the PKCE flow.
-    'oidc_login_code_challenge_method' => 'S256',
+    'oidc_login_code_challenge_method' => '',
+
+    // If you want to explicitly disable usage of access/refresh
+    // tokens. Defaults to false.
+    'oidc_login_refresh_tokens_disabled' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
@@ -248,8 +255,8 @@ $CONFIG = array (
 	1. Add a `Valid Redirect URI` e.g. `https://cloud.example.com/apps/oidc_login/oidc`.
 	1. Open the `Fine Grain OpenID Connect Configuration` dropdown and set `ID Token Signature Algorithm` to `RS256` and save.
 
-1. Map Nextcloud attributes (quota, groups) OPTIONAL:
-    1. Open your created Client
+2. Map Nextcloud attributes (quota, groups) OPTIONAL:
+   1. Open your created Client
     1. Click `Roles tab > Create role`:
         - Role name: `admin` (maps to GID of the group not display name)
         - Description: `Nextcloud admin`
@@ -300,7 +307,6 @@ $CONFIG = array (
 // Enable PKCE flow for enhanced security
 'oidc_login_code_challenge_method' => 'S256',
 ```
-
 **Note:**
 - If necessary, restart Nextcloud to clear the APCu cache for the config file.
 - You can use the above `Mapper` method to map any arbitrary user attribute in Keycloak to output with standard userdata, allowing use of arbitrary fields for `id`, etc.
