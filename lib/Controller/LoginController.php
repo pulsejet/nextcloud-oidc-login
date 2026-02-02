@@ -117,23 +117,15 @@ class LoginController extends Controller
                 // Get user information from OIDC
                 $user = $oidc->requestUserInfo();
             }
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
             $this->tokenService->prepareLogout($oidc);
 
             // Convert to PHP array and process
             return $this->authSuccess(json_decode(json_encode($user), true), $oidc);
             // Get user info
             $profile = $oidc->getProfile();
-
->>>>>>> 178a9d3 ((fix) run php linter)
             // Store logout URLs in session
             $this->prepareLogout($oidc);
-=======
-            $this->tokenService->prepareLogout($oidc);
->>>>>>> 0ea84a2 (Fix logout and token refresh)
+
 
             // Continue with login
             return $this->login($profile);
