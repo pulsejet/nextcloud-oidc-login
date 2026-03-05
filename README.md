@@ -237,6 +237,10 @@ $CONFIG = array (
     //	- 'plain'
     // The default value is empty, which won't apply the PKCE flow.
     'oidc_login_code_challenge_method' => 'S256',
+
+    // Disable token authentication method client_secret_basic.
+    // Some providers do not support client_secret_basic token authentication.
+    'oidc_disable_token_basic_auth' => false,
 );
 ```
 ### Usage with [Keycloak](https://www.keycloak.org/)
