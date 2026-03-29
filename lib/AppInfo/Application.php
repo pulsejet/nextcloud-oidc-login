@@ -76,7 +76,7 @@ class Application extends App implements IBootstrap
         $altLoginPage = $this->config->getSystemValue('oidc_login_alt_login_page', false);
 
         // URL for login without redirecting forcefully, false if we are not doing that
-        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm').'?noredir=1' : false;
+        $noRedirLoginUrl = $useLoginRedirect ? $this->url->linkToRouteAbsolute('core.login.showLoginForm') . '?noredir=1' : false;
 
         // Get logged in user's session
         $userSession = $container->get(IUserSession::class);
@@ -107,7 +107,7 @@ class Application extends App implements IBootstrap
                     $session->close();
                     if (!$this->isApiRequest()) {
                         header('Clear-Site-Data: "cache", "storage"');
-                        header('Location: '.$logoutUrl);
+                        header('Location: ' . $logoutUrl);
 
                         exit;
                     }
@@ -123,12 +123,18 @@ class Application extends App implements IBootstrap
         }
 
         // Redirect automatically or show alt login page
-        if (\array_key_exists('REQUEST_METHOD', $_SERVER)
+        if (
+            \array_key_exists('REQUEST_METHOD', $_SERVER)
             && 'GET' === $_SERVER['REQUEST_METHOD']
             && '/login' === $request->getPathInfo()
-            && null === $request->getParam('noredir')
-            && null === $request->getParam('user')
+            && null === $request->getParam('noredir') // Not sure this param is used
+            //&& null === $request->getParam('user')
         ) {
+            // Skip OIDC login when direct is given
+            if (isset($request->getParam['direct']) && ($request->getParam['direct'] === 1 || $request->getParam['direct'] === '1')) {
+                return;
+            }
+
             // Set redirection URL
             $redir = $request->getParam('redirect_url');
             if (null !== $redir && !empty($redir)) {
@@ -142,7 +148,7 @@ class Application extends App implements IBootstrap
 
             // Force redirect
             if ($useLoginRedirect) {
-                header('Location: '.$loginLink);
+                header('Location: ' . $loginLink);
 
                 exit;
             }
