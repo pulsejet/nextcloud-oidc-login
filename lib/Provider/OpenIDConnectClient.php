@@ -248,7 +248,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
         if ($url === $this->getProviderConfigValue('jwks_uri')) {
             // Cache jwks
-            return $this->getJWKs();
+            return $this->getJWKs(false, $headers);
         }
 
         return parent::fetchURL($url, $post_body, $headers);
@@ -296,7 +296,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
      *
      * @throws \Jumbojett\OpenIDConnectClientException
      */
-    private function getJWKs($ignore_cache = false)
+    private function getJWKs($ignore_cache = false,$headers = [])
     {
         $lastFetched = $this->appConfig->getValueInt($this->appName, 'last_updated_jwks', 0);
 
@@ -318,7 +318,7 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
         }
 
         // Avoid recursion
-        $resp = parent::fetchURL($this->getProviderConfigValue('jwks_uri'));
+        $resp = parent::fetchURL($this->getProviderConfigValue('jwks_uri'),null,$headers);
 
         // Don't cache non-200 responses.
         // As we didn't find any specification in the standard, what 200 code it should exactly be,
