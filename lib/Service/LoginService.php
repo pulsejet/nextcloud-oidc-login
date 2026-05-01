@@ -8,6 +8,7 @@ use OC\User\Session;
 use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 use OCA\User_LDAP\IUserLDAP;
 use OCP\Accounts\IAccountManager;
+use OCP\Authentication\Token\IToken;
 use OCP\IAvatarManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
@@ -195,6 +196,12 @@ class LoginService
         $userSession->setTokenProvider($this->tokenProvider);
         $userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
         $token = $this->tokenProvider->getToken($userSession->getSession()->getId());
+
+        // Skip password validation for OIDC users since they don't have a local password
+        $scope = $token->getScopeAsArray();
+        $scope[IToken::SCOPE_SKIP_PASSWORD_VALIDATION] = true;
+        $token->setScope($scope);
+        $this->tokenProvider->updateToken($token);
 
         // Log the user in. This will throw if login fails.
         $userSession->completeLogin($user, [

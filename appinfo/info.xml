@@ -21,7 +21,7 @@ Provides user creation and login via one single OpenID Connect provider. Even th
 - Mapping of multiple names to a single display name
 - Mapping for birthdate
 ]]></description>
-    <version>3.3.0</version>
+    <version>3.3.1</version>
     <licence>agpl</licence>
     <author>pulsejet</author>
     <namespace>OIDCLogin</namespace>
