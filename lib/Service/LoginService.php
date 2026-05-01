@@ -79,6 +79,11 @@ class LoginService
         $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
         $oidc->addScope($scope);
 
+        // Set disabling token client_secret_basic authentication
+        if ($this->config->getSystemValue('oidc_disable_token_basic_auth', false)) {
+            $oidc->setTokenEndpointAuthMethodsSupported([]);
+        }
+
         return $oidc;
     }
 
