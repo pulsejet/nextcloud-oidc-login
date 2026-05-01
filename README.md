@@ -239,7 +239,7 @@ $CONFIG = array (
     'oidc_login_code_challenge_method' => 'S256',
 
     // Disable token authentication method client_secret_basic.
-    // Some providers do not support client_secret_basic token authentication.
+    // Some providers (e.g., Stalwart Mail) do not support client_secret_basic token authentication.
     'oidc_disable_token_basic_auth' => false,
 );
 ```
