@@ -1,0 +1,57 @@
+# Author: Kevin Veen-Birkenbach <kevin@veen.world> - https://www.veen.world
+---
+name: Nextcloud compatibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      nextcloud_image_tag:
+        description: Nextcloud Docker image tag to test
+        required: false
+        default: latest
+  schedule:
+    - cron: "23 4 * * *"
+  pull_request:
+    paths:
+      - "3rdparty/**"
+      - "appinfo/info.xml"
+      - "lib/**"
+      - ".github/nextcloud-compatibility/**"
+      - ".github/workflows/nextcloud-compatibility.yaml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: nextcloud-compatibility-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Test latest Nextcloud compatibility
+        id: compatibility
+        env:
+          NEXTCLOUD_IMAGE_TAG: ${{ github.event.inputs.nextcloud_image_tag || 'latest' }}
+          UPDATE_INFO: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+        run: .github/nextcloud-compatibility/run.sh
+
+      - name: Create compatibility pull request
+        if: steps.compatibility.outputs.changed == 'true' && github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-nextcloud-${{ steps.compatibility.outputs.nextcloud_major }}
+          commit-message: Update Nextcloud max-version to ${{ steps.compatibility.outputs.nextcloud_major }}
+          delete-branch: true
+          title: Update Nextcloud max-version to ${{ steps.compatibility.outputs.nextcloud_major }}
+          body: |
+            Automated compatibility check passed for Nextcloud ${{ steps.compatibility.outputs.nextcloud_version }}.
+
+            This updates `appinfo/info.xml` from max-version `${{ steps.compatibility.outputs.current_max_version }}` to `${{ steps.compatibility.outputs.nextcloud_major }}` after verifying:
+
+            - the app can be enabled in a fresh Nextcloud container
+            - OIDC login succeeds against the compose-based mock OAuth2/OIDC provider

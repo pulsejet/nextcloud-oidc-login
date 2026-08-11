@@ -1,0 +1,66 @@
+# Author: Kevin Veen-Birkenbach <kevin@veen.world> - https://www.veen.world
+services:
+  db:
+    image: mariadb:10.11
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      MYSQL_DATABASE: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      MYSQL_ROOT_PASSWORD: nextcloud
+      MYSQL_USER: nextcloud
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  nextcloud:
+    image: nextcloud:${NEXTCLOUD_IMAGE_TAG:-latest}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${NEXTCLOUD_HOST_PORT:-8080}:80"
+    environment:
+      MYSQL_DATABASE: nextcloud
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: nextcloud
+      MYSQL_USER: nextcloud
+      NEXTCLOUD_ADMIN_PASSWORD: admin
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_TRUSTED_DOMAINS: 127.0.0.1 localhost host.docker.internal
+      OVERWRITECLIURL: http://127.0.0.1:${NEXTCLOUD_HOST_PORT:-8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../../:/var/www/html/custom_apps/oidc_login:ro
+
+  mock-oauth2:
+    image: ghcr.io/navikt/mock-oauth2-server:latest
+    hostname: host.docker.internal
+    ports:
+      - "${MOCK_OAUTH2_HOST_PORT:-8090}:8080"
+    environment:
+      JSON_CONFIG: |
+        {
+          "interactiveLogin": false,
+          "httpServer": "NettyWrapper",
+          "tokenCallbacks": [
+            {
+              "issuerId": "default",
+              "requestMappings": [
+                {
+                  "requestParam": "code",
+                  "match": "*",
+                  "claims": {
+                    "sub": "oidc-ci-user",
+                    "name": "OIDC CI User",
+                    "email": "oidc-ci@example.test",
+                    "aud": ["nextcloud"],
+                    "groups": ["oidc"]
+                  }
+                }
+              ]
+            }
+          ]
+        }

@@ -3,12 +3,105 @@ name: release
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - appinfo/info.xml
 
 env:
   APP_NAME: oidc_login
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      should_publish: ${{ steps.meta.outputs.should_publish }}
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Detect release metadata
+      id: meta
+      env:
+        RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+      run: |
+        if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+          {
+            echo "should_publish=true"
+            echo "tag=${RELEASE_TAG}"
+            echo "version=${RELEASE_TAG#v}"
+            echo "prerelease=${RELEASE_PRERELEASE}"
+          } >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        current_version="$(python3 - <<'PY'
+        import xml.etree.ElementTree as ET
+        print(ET.parse('appinfo/info.xml').getroot().findtext('version'))
+        PY
+        )"
+
+        previous_version="$(
+          git show "${{ github.event.before }}:appinfo/info.xml" 2>/dev/null |
+          python3 -c 'import sys, xml.etree.ElementTree as ET; print(ET.fromstring(sys.stdin.read()).findtext("version"))' 2>/dev/null ||
+          true
+        )"
+
+        is_bump="$(python3 - "${previous_version}" "${current_version}" <<'PY'
+        import sys
+
+        def version_tuple(value):
+            return tuple(int(part) for part in value.split('.'))
+
+        previous, current = sys.argv[1], sys.argv[2]
+        if not previous:
+            print('false')
+        else:
+            print(str(version_tuple(current) > version_tuple(previous)).lower())
+        PY
+        )"
+
+        if [ "${is_bump}" != "true" ]; then
+          echo "should_publish=false" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        {
+          echo "should_publish=true"
+          echo "tag=v${current_version}"
+          echo "version=${current_version}"
+          echo "prerelease=false"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Create GitHub release for version bump
+      if: github.event_name == 'push' && steps.meta.outputs.should_publish == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ steps.meta.outputs.tag }}
+        VERSION: ${{ steps.meta.outputs.version }}
+      run: |
+        if gh release view "${TAG}" >/dev/null 2>&1; then
+          exit 0
+        fi
+
+        gh release create "${TAG}" \
+          --target "${GITHUB_SHA}" \
+          --title "${TAG}" \
+          --notes "Automated release for ${APP_NAME} ${VERSION}."
+
   publish:
+    needs: prepare
+    if: needs.prepare.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,7 +123,7 @@ jobs:
       with:
         file: oidc_login.tar.gz
         asset_name: oidc_login.tar.gz
-        tag: ${{ github.ref }}
+        tag: ${{ needs.prepare.outputs.tag }}
         overwrite: true
 
     - name: Upload app to Nextcloud appstore
@@ -40,4 +133,4 @@ jobs:
         appstore_token: ${{ secrets.APPSTORE_TOKEN }}
         download_url: ${{ steps.attach_to_release.outputs.browser_download_url }}
         app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
-        nightly: ${{ github.event.release.prerelease }}
+        nightly: ${{ needs.prepare.outputs.prerelease }}
