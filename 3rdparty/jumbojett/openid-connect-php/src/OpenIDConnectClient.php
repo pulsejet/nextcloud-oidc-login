@@ -346,6 +346,9 @@ class OpenIDConnectClient
 
             $claims = $this->decodeJWT($token_json->id_token, 1);
 
+            // Save the access token
+            $this->accessToken = $token_json->access_token;
+
             // Verify the signature
             if ($this->canVerifySignatures()) {
                 if (!$this->getProviderConfigValue('jwks_uri')) {
@@ -361,8 +364,6 @@ class OpenIDConnectClient
             // Save the id token
             $this->idToken = $token_json->id_token;
 
-            // Save the access token
-            $this->accessToken = $token_json->access_token;
 
             // If this is a valid claim
             if ($this->verifyJWTclaims($claims, $token_json->access_token)) {
@@ -1236,7 +1237,10 @@ class OpenIDConnectClient
                     $jwk = $header->jwk;
                     $this->verifyJWKHeader($jwk);
                 } else {
-                    $jwks = json_decode($this->fetchURL($this->getProviderConfigValue('jwks_uri')));
+                    $headers = ["Authorization: Bearer {$this->accessToken}",
+                        'Accept: application/json'];
+                    $fetchResult = $this->fetchURL($this->getProviderConfigValue('jwks_uri'),null,$headers);
+                    $jwks = json_decode($fetchResult);
                     if ($jwks === NULL) {
                         throw new OpenIDConnectClientException('Error decoding JSON from jwks_uri');
                     }
