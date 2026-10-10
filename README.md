@@ -65,6 +65,8 @@ $CONFIG = array (
     //                      If set to null, existing display name won't be overwritten
     //   * mail:         Email address
     //                      If set to null, existing email address won't be overwritten
+    //   * phone:        Phone number
+    //                      If set to null, existing phone number won't be overwritten
     //   * quota:        Nextcloud storage quota
     //   * home:         Home directory location. A symlink or external storage to this location is used
     //   * ldap_uid:     LDAP uid to search for when running in proxy mode
@@ -119,6 +121,7 @@ $CONFIG = array (
         'name' => 'name',
         'mail' => 'email',
         'birthdate' => 'birthdate',
+        'phone' => 'phone_number',
         'quota' => 'ownCloudQuota',
         'home' => 'homeDirectory',
         'ldap_uid' => 'uid',
@@ -294,6 +297,7 @@ $CONFIG = array (
     # Add groups and quota if you mapped it
     'groups' => 'nextcloud_groups',
     'quota' => 'nextcloud_quota',
+    'phone' => 'phone_number',
 ),
 // If you are running Nextcloud behind a reverse proxy, make sure this is set
 'overwriteprotocol' => 'https',
